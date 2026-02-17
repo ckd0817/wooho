@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
@@ -85,7 +86,9 @@ class AudioEngine {
 
       _isInitialized = true;
     } catch (e) {
-      rethrow;
+      debugPrint('音频引擎初始化失败: $e');
+      // 不抛出异常，允许应用继续运行
+      _isInitialized = false;
     }
   }
 
@@ -122,20 +125,6 @@ class AudioEngine {
   Future<void> setBpm(int bpm) async {
     _currentBpm = bpm.clamp(AppConstants.minBpm, AppConstants.maxBpm);
 
-    // 检查是否需要切换音频
-    final bestLoop = _selectBestLoop(_currentBpm);
-    if (bestLoop != null && bestLoop.id != _currentDrumLoop?.id) {
-      // 需要切换音频
-      final wasPlaying = _isPlaying;
-      if (wasPlaying) {
-        await _bgmPlayer.stop();
-      }
-      await _loadAudioForBpm(_currentBpm);
-      if (wasPlaying) {
-        await _bgmPlayer.play();
-      }
-    }
-
     // 计算播放速度 (基于当前音频的原始 BPM)
     if (_currentDrumLoop != null) {
       final speed = _currentBpm / _currentDrumLoop!.bpm;
@@ -143,15 +132,43 @@ class AudioEngine {
     }
   }
 
+  /// 选择指定音频
+  Future<void> selectDrumLoop(DrumLoop loop) async {
+    if (_currentDrumLoop?.id == loop.id) return;
+
+    final wasPlaying = _isPlaying;
+    if (wasPlaying) {
+      await _bgmPlayer.stop();
+    }
+
+    _currentDrumLoop = loop;
+    await _bgmPlayer.setAsset(loop.assetPath);
+    await _bgmPlayer.setLoopMode(LoopMode.one);
+
+    // 根据当前 BPM 调整播放速度
+    final speed = _currentBpm / loop.bpm;
+    await _bgmPlayer.setSpeed(speed);
+
+    if (wasPlaying) {
+      await _bgmPlayer.play();
+    }
+  }
+
   /// 播放背景鼓点
   Future<void> playBgm() async {
-    if (!_isInitialized) await initialize();
+    if (!_isInitialized) {
+      await initialize();
+      if (!_isInitialized) {
+        debugPrint('音频未初始化，无法播放');
+        return;
+      }
+    }
 
     try {
       await _bgmPlayer.play();
       _isPlaying = true;
     } catch (e) {
-      rethrow;
+      debugPrint('播放音频失败: $e');
     }
   }
 

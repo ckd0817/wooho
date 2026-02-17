@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/dance_move.dart';
+import '../../data/models/drum_loop.dart';
 import '../../services/audio/audio_engine.dart';
 import '../../core/constants/app_constants.dart';
 
@@ -17,12 +18,16 @@ class DrillState {
   final int currentIndex;
   final bool isPlaying;
   final int bpm;
+  final DrumLoop? currentDrumLoop;
+  final List<DrumLoop> availableLoops;
 
   const DrillState({
     this.queue = const [],
     this.currentIndex = 0,
     this.isPlaying = false,
     this.bpm = AppConstants.defaultBpm,
+    this.currentDrumLoop,
+    this.availableLoops = const [],
   });
 
   /// 当前动作
@@ -49,12 +54,16 @@ class DrillState {
     int? currentIndex,
     bool? isPlaying,
     int? bpm,
+    DrumLoop? currentDrumLoop,
+    List<DrumLoop>? availableLoops,
   }) {
     return DrillState(
       queue: queue ?? this.queue,
       currentIndex: currentIndex ?? this.currentIndex,
       isPlaying: isPlaying ?? this.isPlaying,
       bpm: bpm ?? this.bpm,
+      currentDrumLoop: currentDrumLoop ?? this.currentDrumLoop,
+      availableLoops: availableLoops ?? this.availableLoops,
     );
   }
 }
@@ -79,16 +88,22 @@ class DrillNotifier extends StateNotifier<DrillState> {
     // 随机打乱队列
     final shuffled = List<DanceMove>.from(moves)..shuffle();
 
+    // 初始化音频引擎
+    await _audioEngine.initialize();
+
+    // 使用音频的原始 BPM 作为默认值
+    final defaultBpm = _audioEngine.currentDrumLoop?.bpm ?? AppConstants.defaultBpm;
+    await _audioEngine.setBpm(defaultBpm);
+
     state = DrillState(
       queue: shuffled,
       currentIndex: 0,
       isPlaying: true,
-      bpm: state.bpm,
+      bpm: defaultBpm,
+      currentDrumLoop: _audioEngine.currentDrumLoop,
+      availableLoops: _audioEngine.availableLoops,
     );
 
-    // 初始化音频引擎
-    await _audioEngine.initialize();
-    await _audioEngine.setBpm(state.bpm);
     await _audioEngine.playBgm();
 
     // 预告第一个动作
@@ -167,6 +182,12 @@ class DrillNotifier extends StateNotifier<DrillState> {
     if (state.isPlaying) {
       _startMoveCycle();
     }
+  }
+
+  /// 选择音频
+  Future<void> selectDrumLoop(DrumLoop loop) async {
+    await _audioEngine.selectDrumLoop(loop);
+    state = state.copyWith(currentDrumLoop: loop);
   }
 
   /// 暂停训练

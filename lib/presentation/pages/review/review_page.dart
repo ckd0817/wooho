@@ -43,9 +43,9 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
       appBar: AppBar(
         title: reviewState.maybeWhen(
           data: (state) => Text(
-            '复习 (${state.completedCount}/${state.totalCount})',
+            '练习 (${state.completedCount}/${state.totalCount})',
           ),
-          orElse: () => const Text('复习'),
+          orElse: () => const Text('练习'),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -66,13 +66,43 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     WidgetRef ref,
     ReviewState state,
   ) {
-    if (state.isComplete) {
-      return _buildCompleteScreen(context, ref, state);
+    // 只有当已完成至少一个动作时，才算真正完成练习
+    if (state.isComplete && state.completedCount > 0) {
+      // 动作练习完成，直接进入串联训练
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _startDrill(context, ref);
+      });
+      // 显示加载中
+      return const Center(child: CircularProgressIndicator());
     }
 
     final currentMove = state.currentMove;
     if (currentMove == null) {
-      return _buildCompleteScreen(context, ref, state);
+      // 没有可练习的动作
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.library_music_outlined,
+              size: 64,
+              color: AppColors.textHint,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '暂无可练习的动作',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textHint,
+              ),
+            ),
+            const SizedBox(height: 24),
+            ElevatedButton(
+              onPressed: () => context.pop(),
+              child: const Text('返回首页'),
+            ),
+          ],
+        ),
+      );
     }
 
     // 加载视频
@@ -219,62 +249,9 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     );
   }
 
-  /// 完成页面
-  Widget _buildCompleteScreen(
-    BuildContext context,
-    WidgetRef ref,
-    ReviewState state,
-  ) {
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.check_circle,
-              size: 80,
-              color: AppColors.success,
-            ),
-            const SizedBox(height: 24),
-            Text(
-              '复习完成!',
-              style: AppTextStyles.heading1.copyWith(
-                color: AppColors.textPrimary,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              '已完成 ${state.completedCount} 个动作的复习',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
-              ),
-              textAlign: TextAlign.center,
-            ),
-            const SizedBox(height: 32),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: state.completedCount > 0
-                    ? () => _startDrill(context, ref)
-                    : null,
-                child: const Text('开始串联训练'),
-              ),
-            ),
-            const SizedBox(height: 12),
-            TextButton(
-              onPressed: () => context.pop(),
-              child: const Text('返回首页'),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
   /// 加载视频
   Future<void> _loadVideo(DanceMove move) async {
-    if (_videoController != null) return;
+    if (_videoController != null || !mounted) return;
 
     // 如果没有视频源，直接返回
     if (move.videoSourceType == VideoSourceType.none) {
@@ -303,10 +280,17 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
       await _videoController!.seekTo(Duration(milliseconds: move.trimStart));
       await _videoController!.play();
 
-      setState(() => _isVideoLoading = false);
+      if (mounted) {
+        setState(() => _isVideoLoading = false);
+      }
     } catch (e) {
-      setState(() => _isVideoLoading = false);
-      // 视频加载失败，显示错误
+      debugPrint('视频加载失败: $e');
+      if (mounted) {
+        setState(() {
+          _isVideoLoading = false;
+          _hasNoVideo = true;
+        });
+      }
     }
   }
 
@@ -318,8 +302,15 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   ) async {
     // 释放当前视频
     await _videoController?.dispose();
-    _videoController = null;
-    _hasNoVideo = false; // 重置无视频状态
+
+    // 重置视频状态
+    if (mounted) {
+      setState(() {
+        _videoController = null;
+        _hasNoVideo = false;
+        _isVideoLoading = false;
+      });
+    }
 
     // 提交评分
     await ref.read(reviewProvider.notifier).submitFeedback(feedback);
@@ -338,12 +329,12 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('退出复习?'),
+        title: const Text('退出练习?'),
         content: const Text('当前进度将会丢失'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('继续复习'),
+            child: const Text('继续练习'),
           ),
           TextButton(
             onPressed: () {

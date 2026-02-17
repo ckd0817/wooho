@@ -7,16 +7,16 @@ class ReviewRecord {
   final String moveId;
   final String feedback;
   final int reviewedAt;
-  final int previousInterval;
-  final int newInterval;
+  final int previousMastery;
+  final int newMastery;
 
   ReviewRecord({
     this.id,
     required this.moveId,
     required this.feedback,
     required this.reviewedAt,
-    required this.previousInterval,
-    required this.newInterval,
+    required this.previousMastery,
+    required this.newMastery,
   });
 
   Map<String, dynamic> toJson() => {
@@ -24,8 +24,8 @@ class ReviewRecord {
         'move_id': moveId,
         'feedback': feedback,
         'reviewed_at': reviewedAt,
-        'previous_interval': previousInterval,
-        'new_interval': newInterval,
+        'previous_mastery': previousMastery,
+        'new_mastery': newMastery,
       };
 
   factory ReviewRecord.fromJson(Map<String, dynamic> json) => ReviewRecord(
@@ -33,8 +33,8 @@ class ReviewRecord {
         moveId: json['move_id'] as String,
         feedback: json['feedback'] as String,
         reviewedAt: json['reviewed_at'] as int,
-        previousInterval: json['previous_interval'] as int,
-        newInterval: json['new_interval'] as int,
+        previousMastery: json['previous_mastery'] as int,
+        newMastery: json['new_mastery'] as int,
       );
 }
 

@@ -5,6 +5,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
 import '../../../data/models/dance_move.dart';
+import '../../../data/models/drum_loop.dart';
 import '../../../data/repositories/dance_move_repository.dart';
 import '../../providers/drill_provider.dart';
 
@@ -230,6 +231,13 @@ class _DrillPageState extends ConsumerState<DrillPage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // 音频选择器
+          if (state.availableLoops.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: _buildAudioSelector(state),
+            ),
+
           // BPM 滑块
           Row(
             children: [
@@ -275,11 +283,11 @@ class _DrillPageState extends ConsumerState<DrillPage> {
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // 停止按钮
+              // 结束训练按钮
               _ControlButton(
-                icon: Icons.stop,
-                label: '停止',
-                onPressed: () => _stopDrill(context),
+                icon: Icons.flag,
+                label: '结束',
+                onPressed: () => _showCompleteDialog(context, state),
               ),
               const SizedBox(width: 32),
               // 播放/暂停按钮
@@ -303,6 +311,44 @@ class _DrillPageState extends ConsumerState<DrillPage> {
     );
   }
 
+  /// 音频选择器
+  Widget _buildAudioSelector(DrillState state) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      decoration: BoxDecoration(
+        color: AppColors.surface.withOpacity(0.3),
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: DropdownButtonHideUnderline(
+        child: DropdownButton<DrumLoop>(
+          value: state.currentDrumLoop,
+          isExpanded: true,
+          dropdownColor: AppColors.surface,
+          icon: const Icon(Icons.music_note, color: AppColors.drillTextSecondary),
+          style: AppTextStyles.body.copyWith(color: AppColors.drillText),
+          hint: Text(
+            '选择音乐',
+            style: AppTextStyles.body.copyWith(color: AppColors.drillTextSecondary),
+          ),
+          items: state.availableLoops.map((loop) {
+            return DropdownMenuItem(
+              value: loop,
+              child: Text(
+                loop.name,
+                style: AppTextStyles.body.copyWith(color: AppColors.drillText),
+              ),
+            );
+          }).toList(),
+          onChanged: (loop) {
+            if (loop != null) {
+              ref.read(drillProvider.notifier).selectDrumLoop(loop);
+            }
+          },
+        ),
+      ),
+    );
+  }
+
   /// 切换播放/暂停
   void _togglePlayPause(DrillState state) {
     final notifier = ref.read(drillProvider.notifier);
@@ -317,10 +363,74 @@ class _DrillPageState extends ConsumerState<DrillPage> {
     }
   }
 
-  /// 停止训练
-  void _stopDrill(BuildContext context) {
-    ref.read(drillProvider.notifier).stopDrill();
-    context.pop();
+  /// 显示训练完成界面
+  void _showCompleteDialog(BuildContext context, DrillState state) {
+    ref.read(drillProvider.notifier).pauseDrill();
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => Dialog(
+        backgroundColor: AppColors.surface,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(
+                Icons.check_circle,
+                size: 64,
+                color: AppColors.success,
+              ),
+              const SizedBox(height: 16),
+              Text(
+                '练习完成!',
+                style: AppTextStyles.heading1.copyWith(
+                  color: AppColors.textPrimary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '已完成 ${widget.moveIds.length} 个动作的练习',
+                style: AppTextStyles.body.copyWith(
+                  color: AppColors.textSecondary,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () {
+                    ref.read(drillProvider.notifier).stopDrill();
+                    Navigator.of(context).pop(); // 关闭对话框
+                    // 返回到首页（跳过 review_page）
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: AppColors.primary,
+                    foregroundColor: AppColors.textPrimary,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text('返回首页'),
+                ),
+              ),
+              const SizedBox(height: 8),
+              TextButton(
+                onPressed: () {
+                  Navigator.of(context).pop(); // 关闭对话框，继续训练
+                  ref.read(drillProvider.notifier).resumeDrill();
+                },
+                child: const Text('继续训练'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   /// 重新洗牌
@@ -332,28 +442,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
 
   /// 确认退出
   void _confirmExit(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: const Text('结束训练?'),
-        content: const Text('确定要结束本次串联训练吗?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('继续训练'),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(drillProvider.notifier).stopDrill();
-              Navigator.pop(context);
-              context.pop();
-            },
-            child: const Text('结束'),
-          ),
-        ],
-      ),
-    );
+    _showCompleteDialog(context, ref.read(drillProvider));
   }
 }
 

@@ -135,7 +135,7 @@ class HomePage extends ConsumerWidget {
                 backgroundColor: AppColors.textPrimary,
                 foregroundColor: AppColors.primary,
               ),
-              child: const Text('开始训练'),
+              child: const Text('开始练习'),
             ),
           ),
         ],

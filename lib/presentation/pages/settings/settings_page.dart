@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../core/constants/app_constants.dart';
 
 /// 设置页面
 class SettingsPage extends ConsumerStatefulWidget {
@@ -15,7 +14,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   double _bgmVolume = 0.7;
   double _ttsSpeed = 0.5;
-  int _defaultBpm = 100;
   bool _enableTts = true;
   bool _enableBackgroundPlay = true;
 
@@ -53,22 +51,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           // 训练设置
           _buildSectionHeader('训练设置'),
           _buildSettingsCard([
-            _buildSliderSetting(
-              icon: Icons.speed_outlined,
-              title: '默认 BPM',
-              value: (_defaultBpm - AppConstants.minBpm) /
-                  (AppConstants.maxBpm - AppConstants.minBpm),
-              label: _defaultBpm.round().toString(),
-              onChanged: (value) {
-                setState(() {
-                  _defaultBpm =
-                      (value * (AppConstants.maxBpm - AppConstants.minBpm) +
-                              AppConstants.minBpm)
-                          .round();
-                });
-              },
-            ),
-            _buildDivider(),
             _buildSwitchSetting(
               icon: Icons.record_voice_over_outlined,
               title: '启用语音提示',

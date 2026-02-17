@@ -1,22 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:just_audio_background/just_audio_background.dart';
 import 'core/theme/app_theme.dart';
 import 'core/router/app_router.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化后台音频服务 (如果失败则继续，后台播放功能将不可用)
-  try {
-    await JustAudioBackground.init(
-      androidNotificationChannelId: 'com.danceloop.app.audio',
-      androidNotificationChannelName: 'DanceLoop Audio',
-      androidNotificationOngoing: true,
-    );
-  } catch (e) {
-    debugPrint('后台音频初始化失败: $e');
-  }
+  // 注意: 暂时禁用后台音频服务，因为它在某些设备上有兼容性问题
+  // 如需启用后台播放，需要正确配置 AndroidManifest.xml 和 MainActivity
 
   runApp(
     const ProviderScope(

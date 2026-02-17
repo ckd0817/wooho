@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/dance_move.dart';
 import '../../data/datasources/local/review_dao.dart';
@@ -79,7 +80,10 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
   /// 提交训练反馈
   Future<void> submitFeedback(FeedbackType feedback) async {
     final currentState = state.value;
-    if (currentState == null || currentState.currentMove == null) return;
+    if (currentState == null || currentState.currentMove == null) {
+      debugPrint('submitFeedback: state.value=$currentState, currentMove=${currentState?.currentMove}');
+      return;
+    }
 
     final move = currentState.currentMove!;
     final previousMastery = move.masteryLevel;
@@ -105,8 +109,8 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
       moveId: move.id,
       feedback: feedback.name,
       reviewedAt: now,
-      previousInterval: previousMastery,
-      newInterval: newMastery,
+      previousMastery: previousMastery,
+      newMastery: newMastery,
     ));
 
     // 更新状态

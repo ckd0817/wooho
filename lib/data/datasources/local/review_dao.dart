@@ -101,4 +101,63 @@ class ReviewDao {
       whereArgs: [moveId],
     );
   }
+
+  /// 获取本周复习次数
+  Future<int> getWeekReviewCount() async {
+    final db = await _dbHelper.database;
+    final now = DateTime.now();
+    // 获取本周一 00:00:00
+    final monday = now.subtract(Duration(days: now.weekday - 1));
+    final startOfWeek = DateTime(monday.year, monday.month, monday.day);
+
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableReviewRecords} WHERE reviewed_at >= ?',
+      [startOfWeek.millisecondsSinceEpoch],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
+
+  /// 获取连续打卡天数
+  Future<int> getStreakDays() async {
+    final db = await _dbHelper.database;
+    final now = DateTime.now();
+    int streak = 0;
+
+    // 从今天开始往前检查
+    for (int i = 0; i < 365; i++) {
+      final checkDate = now.subtract(Duration(days: i));
+      final startOfDay = DateTime(checkDate.year, checkDate.month, checkDate.day);
+      final endOfDay = startOfDay.add(const Duration(days: 1));
+
+      final result = await db.rawQuery(
+        'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableReviewRecords} WHERE reviewed_at >= ? AND reviewed_at < ?',
+        [startOfDay.millisecondsSinceEpoch, endOfDay.millisecondsSinceEpoch],
+      );
+
+      final count = Sqflite.firstIntValue(result) ?? 0;
+
+      if (count > 0) {
+        streak++;
+      } else if (i > 0) {
+        // 如果不是今天且没有复习记录，连续天数中断
+        break;
+      }
+      // 如果是今天且没有复习记录，继续检查昨天
+    }
+
+    return streak;
+  }
+
+  /// 获取某天的复习记录数
+  Future<int> getReviewCountForDate(DateTime date) async {
+    final db = await _dbHelper.database;
+    final startOfDay = DateTime(date.year, date.month, date.day);
+    final endOfDay = startOfDay.add(const Duration(days: 1));
+
+    final result = await db.rawQuery(
+      'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableReviewRecords} WHERE reviewed_at >= ? AND reviewed_at < ?',
+      [startOfDay.millisecondsSinceEpoch, endOfDay.millisecondsSinceEpoch],
+    );
+    return Sqflite.firstIntValue(result) ?? 0;
+  }
 }

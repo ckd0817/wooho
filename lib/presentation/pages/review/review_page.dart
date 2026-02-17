@@ -19,12 +19,13 @@ class ReviewPage extends ConsumerStatefulWidget {
 class _ReviewPageState extends ConsumerState<ReviewPage> {
   VideoPlayerController? _videoController;
   bool _isVideoLoading = false;
+  bool _hasNoVideo = false;
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(reviewProvider.notifier).loadDueMoves();
+      ref.read(reviewProvider.notifier).loadTrainingMoves();
     });
   }
 
@@ -126,6 +127,29 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   Widget _buildVideoPlayer(DanceMove move) {
     if (_isVideoLoading) {
       return const Center(child: CircularProgressIndicator());
+    }
+
+    // 无视频时显示提示
+    if (_hasNoVideo) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.video_library_outlined,
+              size: 64,
+              color: AppColors.textHint,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '此动作暂无视频',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textHint,
+              ),
+            ),
+          ],
+        ),
+      );
     }
 
     if (_videoController == null || !_videoController!.value.isInitialized) {
@@ -252,6 +276,15 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   Future<void> _loadVideo(DanceMove move) async {
     if (_videoController != null) return;
 
+    // 如果没有视频源，直接返回
+    if (move.videoSourceType == VideoSourceType.none) {
+      setState(() {
+        _hasNoVideo = true;
+        _isVideoLoading = false;
+      });
+      return;
+    }
+
     setState(() => _isVideoLoading = true);
 
     try {
@@ -286,6 +319,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     // 释放当前视频
     await _videoController?.dispose();
     _videoController = null;
+    _hasNoVideo = false; // 重置无视频状态
 
     // 提交评分
     await ref.read(reviewProvider.notifier).submitFeedback(feedback);

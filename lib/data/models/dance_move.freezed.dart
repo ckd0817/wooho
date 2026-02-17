@@ -24,18 +24,24 @@ mixin _$DanceMove {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get category => throw _privateConstructorUsedError; // 视频源数据
+  @JsonKey(name: 'video_source_type')
   VideoSourceType get videoSourceType => throw _privateConstructorUsedError;
+  @JsonKey(name: 'video_uri')
   String get videoUri => throw _privateConstructorUsedError;
+  @JsonKey(name: 'trim_start')
   int get trimStart => throw _privateConstructorUsedError; // 毫秒
+  @JsonKey(name: 'trim_end')
   int get trimEnd => throw _privateConstructorUsedError; // 毫秒
-  // SRS 学习数据
+  // 训练数据
   MoveStatus get status => throw _privateConstructorUsedError;
-  int get interval => throw _privateConstructorUsedError; // 当前间隔天数
-  int get nextReviewDate =>
-      throw _privateConstructorUsedError; // Timestamp (milliseconds since epoch)
-  int get masteryLevel => throw _privateConstructorUsedError; // 0-100
+  @JsonKey(name: 'mastery_level')
+  int get masteryLevel => throw _privateConstructorUsedError; // 0-100 熟练度
+  @JsonKey(name: 'last_practiced_at')
+  int get lastPracticedAt => throw _privateConstructorUsedError; // Timestamp 上次练习时间
   // 元数据
+  @JsonKey(name: 'created_at')
   int get createdAt => throw _privateConstructorUsedError; // Timestamp
+  @JsonKey(name: 'updated_at')
   int? get updatedAt => throw _privateConstructorUsedError;
 
   /// Serializes this DanceMove to a JSON map.
@@ -57,16 +63,15 @@ abstract class $DanceMoveCopyWith<$Res> {
     String id,
     String name,
     String category,
-    VideoSourceType videoSourceType,
-    String videoUri,
-    int trimStart,
-    int trimEnd,
+    @JsonKey(name: 'video_source_type') VideoSourceType videoSourceType,
+    @JsonKey(name: 'video_uri') String videoUri,
+    @JsonKey(name: 'trim_start') int trimStart,
+    @JsonKey(name: 'trim_end') int trimEnd,
     MoveStatus status,
-    int interval,
-    int nextReviewDate,
-    int masteryLevel,
-    int createdAt,
-    int? updatedAt,
+    @JsonKey(name: 'mastery_level') int masteryLevel,
+    @JsonKey(name: 'last_practiced_at') int lastPracticedAt,
+    @JsonKey(name: 'created_at') int createdAt,
+    @JsonKey(name: 'updated_at') int? updatedAt,
   });
 }
 
@@ -93,9 +98,8 @@ class _$DanceMoveCopyWithImpl<$Res, $Val extends DanceMove>
     Object? trimStart = null,
     Object? trimEnd = null,
     Object? status = null,
-    Object? interval = null,
-    Object? nextReviewDate = null,
     Object? masteryLevel = null,
+    Object? lastPracticedAt = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
   }) {
@@ -133,17 +137,13 @@ class _$DanceMoveCopyWithImpl<$Res, $Val extends DanceMove>
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
                       as MoveStatus,
-            interval: null == interval
-                ? _value.interval
-                : interval // ignore: cast_nullable_to_non_nullable
-                      as int,
-            nextReviewDate: null == nextReviewDate
-                ? _value.nextReviewDate
-                : nextReviewDate // ignore: cast_nullable_to_non_nullable
-                      as int,
             masteryLevel: null == masteryLevel
                 ? _value.masteryLevel
                 : masteryLevel // ignore: cast_nullable_to_non_nullable
+                      as int,
+            lastPracticedAt: null == lastPracticedAt
+                ? _value.lastPracticedAt
+                : lastPracticedAt // ignore: cast_nullable_to_non_nullable
                       as int,
             createdAt: null == createdAt
                 ? _value.createdAt
@@ -172,16 +172,15 @@ abstract class _$$DanceMoveImplCopyWith<$Res>
     String id,
     String name,
     String category,
-    VideoSourceType videoSourceType,
-    String videoUri,
-    int trimStart,
-    int trimEnd,
+    @JsonKey(name: 'video_source_type') VideoSourceType videoSourceType,
+    @JsonKey(name: 'video_uri') String videoUri,
+    @JsonKey(name: 'trim_start') int trimStart,
+    @JsonKey(name: 'trim_end') int trimEnd,
     MoveStatus status,
-    int interval,
-    int nextReviewDate,
-    int masteryLevel,
-    int createdAt,
-    int? updatedAt,
+    @JsonKey(name: 'mastery_level') int masteryLevel,
+    @JsonKey(name: 'last_practiced_at') int lastPracticedAt,
+    @JsonKey(name: 'created_at') int createdAt,
+    @JsonKey(name: 'updated_at') int? updatedAt,
   });
 }
 
@@ -207,9 +206,8 @@ class __$$DanceMoveImplCopyWithImpl<$Res>
     Object? trimStart = null,
     Object? trimEnd = null,
     Object? status = null,
-    Object? interval = null,
-    Object? nextReviewDate = null,
     Object? masteryLevel = null,
+    Object? lastPracticedAt = null,
     Object? createdAt = null,
     Object? updatedAt = freezed,
   }) {
@@ -247,17 +245,13 @@ class __$$DanceMoveImplCopyWithImpl<$Res>
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
                   as MoveStatus,
-        interval: null == interval
-            ? _value.interval
-            : interval // ignore: cast_nullable_to_non_nullable
-                  as int,
-        nextReviewDate: null == nextReviewDate
-            ? _value.nextReviewDate
-            : nextReviewDate // ignore: cast_nullable_to_non_nullable
-                  as int,
         masteryLevel: null == masteryLevel
             ? _value.masteryLevel
             : masteryLevel // ignore: cast_nullable_to_non_nullable
+                  as int,
+        lastPracticedAt: null == lastPracticedAt
+            ? _value.lastPracticedAt
+            : lastPracticedAt // ignore: cast_nullable_to_non_nullable
                   as int,
         createdAt: null == createdAt
             ? _value.createdAt
@@ -279,16 +273,15 @@ class _$DanceMoveImpl implements _DanceMove {
     required this.id,
     required this.name,
     required this.category,
-    required this.videoSourceType,
-    required this.videoUri,
-    this.trimStart = 0,
-    this.trimEnd = 0,
+    @JsonKey(name: 'video_source_type') required this.videoSourceType,
+    @JsonKey(name: 'video_uri') required this.videoUri,
+    @JsonKey(name: 'trim_start') this.trimStart = 0,
+    @JsonKey(name: 'trim_end') this.trimEnd = 0,
     this.status = MoveStatus.new_,
-    this.interval = 1,
-    required this.nextReviewDate,
-    this.masteryLevel = 0,
-    required this.createdAt,
-    this.updatedAt,
+    @JsonKey(name: 'mastery_level') this.masteryLevel = 0,
+    @JsonKey(name: 'last_practiced_at') this.lastPracticedAt = 0,
+    @JsonKey(name: 'created_at') this.createdAt = 0,
+    @JsonKey(name: 'updated_at') this.updatedAt,
   });
 
   factory _$DanceMoveImpl.fromJson(Map<String, dynamic> json) =>
@@ -302,42 +295,43 @@ class _$DanceMoveImpl implements _DanceMove {
   final String category;
   // 视频源数据
   @override
+  @JsonKey(name: 'video_source_type')
   final VideoSourceType videoSourceType;
   @override
+  @JsonKey(name: 'video_uri')
   final String videoUri;
   @override
-  @JsonKey()
+  @JsonKey(name: 'trim_start')
   final int trimStart;
   // 毫秒
   @override
-  @JsonKey()
+  @JsonKey(name: 'trim_end')
   final int trimEnd;
   // 毫秒
-  // SRS 学习数据
+  // 训练数据
   @override
   @JsonKey()
   final MoveStatus status;
   @override
-  @JsonKey()
-  final int interval;
-  // 当前间隔天数
-  @override
-  final int nextReviewDate;
-  // Timestamp (milliseconds since epoch)
-  @override
-  @JsonKey()
+  @JsonKey(name: 'mastery_level')
   final int masteryLevel;
-  // 0-100
+  // 0-100 熟练度
+  @override
+  @JsonKey(name: 'last_practiced_at')
+  final int lastPracticedAt;
+  // Timestamp 上次练习时间
   // 元数据
   @override
+  @JsonKey(name: 'created_at')
   final int createdAt;
   // Timestamp
   @override
+  @JsonKey(name: 'updated_at')
   final int? updatedAt;
 
   @override
   String toString() {
-    return 'DanceMove(id: $id, name: $name, category: $category, videoSourceType: $videoSourceType, videoUri: $videoUri, trimStart: $trimStart, trimEnd: $trimEnd, status: $status, interval: $interval, nextReviewDate: $nextReviewDate, masteryLevel: $masteryLevel, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'DanceMove(id: $id, name: $name, category: $category, videoSourceType: $videoSourceType, videoUri: $videoUri, trimStart: $trimStart, trimEnd: $trimEnd, status: $status, masteryLevel: $masteryLevel, lastPracticedAt: $lastPracticedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
@@ -357,12 +351,10 @@ class _$DanceMoveImpl implements _DanceMove {
                 other.trimStart == trimStart) &&
             (identical(other.trimEnd, trimEnd) || other.trimEnd == trimEnd) &&
             (identical(other.status, status) || other.status == status) &&
-            (identical(other.interval, interval) ||
-                other.interval == interval) &&
-            (identical(other.nextReviewDate, nextReviewDate) ||
-                other.nextReviewDate == nextReviewDate) &&
             (identical(other.masteryLevel, masteryLevel) ||
                 other.masteryLevel == masteryLevel) &&
+            (identical(other.lastPracticedAt, lastPracticedAt) ||
+                other.lastPracticedAt == lastPracticedAt) &&
             (identical(other.createdAt, createdAt) ||
                 other.createdAt == createdAt) &&
             (identical(other.updatedAt, updatedAt) ||
@@ -381,9 +373,8 @@ class _$DanceMoveImpl implements _DanceMove {
     trimStart,
     trimEnd,
     status,
-    interval,
-    nextReviewDate,
     masteryLevel,
+    lastPracticedAt,
     createdAt,
     updatedAt,
   );
@@ -407,16 +398,16 @@ abstract class _DanceMove implements DanceMove {
     required final String id,
     required final String name,
     required final String category,
+    @JsonKey(name: 'video_source_type')
     required final VideoSourceType videoSourceType,
-    required final String videoUri,
-    final int trimStart,
-    final int trimEnd,
+    @JsonKey(name: 'video_uri') required final String videoUri,
+    @JsonKey(name: 'trim_start') final int trimStart,
+    @JsonKey(name: 'trim_end') final int trimEnd,
     final MoveStatus status,
-    final int interval,
-    required final int nextReviewDate,
-    final int masteryLevel,
-    required final int createdAt,
-    final int? updatedAt,
+    @JsonKey(name: 'mastery_level') final int masteryLevel,
+    @JsonKey(name: 'last_practiced_at') final int lastPracticedAt,
+    @JsonKey(name: 'created_at') final int createdAt,
+    @JsonKey(name: 'updated_at') final int? updatedAt,
   }) = _$DanceMoveImpl;
 
   factory _DanceMove.fromJson(Map<String, dynamic> json) =
@@ -429,26 +420,32 @@ abstract class _DanceMove implements DanceMove {
   @override
   String get category; // 视频源数据
   @override
+  @JsonKey(name: 'video_source_type')
   VideoSourceType get videoSourceType;
   @override
+  @JsonKey(name: 'video_uri')
   String get videoUri;
   @override
+  @JsonKey(name: 'trim_start')
   int get trimStart; // 毫秒
   @override
+  @JsonKey(name: 'trim_end')
   int get trimEnd; // 毫秒
-  // SRS 学习数据
+  // 训练数据
   @override
   MoveStatus get status;
   @override
-  int get interval; // 当前间隔天数
+  @JsonKey(name: 'mastery_level')
+  int get masteryLevel; // 0-100 熟练度
   @override
-  int get nextReviewDate; // Timestamp (milliseconds since epoch)
-  @override
-  int get masteryLevel; // 0-100
+  @JsonKey(name: 'last_practiced_at')
+  int get lastPracticedAt; // Timestamp 上次练习时间
   // 元数据
   @override
+  @JsonKey(name: 'created_at')
   int get createdAt; // Timestamp
   @override
+  @JsonKey(name: 'updated_at')
   int? get updatedAt;
 
   /// Create a copy of DanceMove

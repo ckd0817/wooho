@@ -31,4 +31,19 @@ class ReviewRepository {
   Future<void> deleteMoveRecords(String moveId) async {
     await _dao.deleteByMoveId(moveId);
   }
+
+  /// 获取本周复习次数
+  Future<int> getWeekReviewCount() async {
+    return await _dao.getWeekReviewCount();
+  }
+
+  /// 获取连续打卡天数
+  Future<int> getStreakDays() async {
+    return await _dao.getStreakDays();
+  }
+
+  /// 获取某天的复习记录数
+  Future<int> getReviewCountForDate(DateTime date) async {
+    return await _dao.getReviewCountForDate(date);
+  }
 }

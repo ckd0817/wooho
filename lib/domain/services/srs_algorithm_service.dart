@@ -1,111 +1,106 @@
+import 'dart:math';
+
 /// 用户反馈类型
 enum FeedbackType {
-  /// 模糊 - 间隔重置为1天
+  /// 模糊 - 熟练度降低 20
   again,
-  /// 认识 - 间隔 x 1.2
+  /// 认识 - 熟练度增加 5
   hard,
-  /// 熟练 - 间隔 x 2.5
+  /// 熟练 - 熟练度增加 15
   easy,
 }
 
 /// 初始熟练度等级
 enum MasteryLevel {
-  /// 新动作 - 1天后复习
+  /// 新动作 - 熟练度 0
   new_,
-  /// 学习中 - 3天后复习
+  /// 学习中 - 熟练度 30
   learning,
-  /// 已掌握 - 7天后复习
+  /// 已掌握 - 熟练度 70
   mastered,
 }
 
-/// SRS 复习算法服务
-/// 基于简化的艾宾浩斯遗忘曲线
+/// SRS 训练算法服务
+/// 基于遗忘曲线和熟练度的按需训练模式
 class SrsAlgorithmService {
-  // 间隔乘数常量
-  static const double _hardMultiplier = 1.2;
-  static const double _easyMultiplier = 2.5;
+  // 熟练度变化常量
+  static const int _againMasteryChange = -20;
+  static const int _hardMasteryChange = 5;
+  static const int _easyMasteryChange = 15;
 
-  // 最小/最大间隔天数
-  static const int minIntervalDays = 1;
-  static const int maxIntervalDays = 365;
+  // 熟练度范围
+  static const int minMastery = 0;
+  static const int maxMastery = 100;
 
-  /// 根据用户反馈计算新的间隔天数
-  int calculateNewInterval(int currentInterval, FeedbackType feedback) {
+  /// 根据用户反馈计算新的熟练度
+  int calculateNewMastery(int currentMastery, FeedbackType feedback) {
+    int change;
     switch (feedback) {
       case FeedbackType.again:
-        return minIntervalDays;
+        change = _againMasteryChange;
+        break;
       case FeedbackType.hard:
-        final newInterval = (currentInterval * _hardMultiplier).round();
-        return newInterval.clamp(minIntervalDays, maxIntervalDays);
+        change = _hardMasteryChange;
+        break;
       case FeedbackType.easy:
-        final newInterval = (currentInterval * _easyMultiplier).round();
-        return newInterval.clamp(minIntervalDays, maxIntervalDays);
+        change = _easyMasteryChange;
+        break;
     }
+    return (currentMastery + change).clamp(minMastery, maxMastery);
   }
 
-  /// 计算下次复习日期
-  DateTime calculateNextReviewDate(int newInterval) {
-    return DateTime.now().add(Duration(days: newInterval));
-  }
-
-  /// 根据初始熟练度计算首次复习日期
-  DateTime calculateInitialReviewDate(MasteryLevel level) {
+  /// 根据初始熟练度等级获取初始熟练度值
+  int getInitialMasteryLevel(MasteryLevel level) {
     switch (level) {
       case MasteryLevel.new_:
-        return DateTime.now().add(const Duration(days: 1));
+        return 0;
       case MasteryLevel.learning:
-        return DateTime.now().add(const Duration(days: 3));
+        return 30;
       case MasteryLevel.mastered:
-        return DateTime.now().add(const Duration(days: 7));
+        return 70;
     }
   }
 
-  /// 根据初始熟练度计算首次间隔天数
-  int calculateInitialInterval(MasteryLevel level) {
-    switch (level) {
-      case MasteryLevel.new_:
-        return 1;
-      case MasteryLevel.learning:
-        return 3;
-      case MasteryLevel.mastered:
-        return 7;
-    }
+  /// 计算动作的优先级分数
+  /// 优先级 = 遗忘因子 × 熟练度权重
+  double calculatePriority({
+    required int masteryLevel,
+    required int lastPracticedAt,
+  }) {
+    final now = DateTime.now().millisecondsSinceEpoch;
+    final daysSincePractice =
+        (now - lastPracticedAt) / (24 * 60 * 60 * 1000);
+
+    // 遗忘因子：越久未练，因子越大
+    // 使用自然对数
+    final forgettingFactor = 1 / (1 + log(daysSincePractice + 1));
+
+    // 熟练度权重：熟练度越低，权重越大
+    final masteryWeight = 1 - (masteryLevel / 100);
+
+    return forgettingFactor * masteryWeight;
   }
 
-  /// 判断某日期是否是今天或之前
-  bool isDue(DateTime reviewDate) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final reviewDateOnly = DateTime(
-      reviewDate.year,
-      reviewDate.month,
-      reviewDate.day,
-    );
-    return !reviewDateOnly.isAfter(today);
-  }
-
-  /// 格式化下次复习时间为可读字符串
-  String formatNextReviewDate(DateTime date) {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final tomorrow = today.add(const Duration(days: 1));
-    final targetDate = DateTime(date.year, date.month, date.day);
-
-    if (targetDate == today) {
-      return '今天';
-    } else if (targetDate == tomorrow) {
-      return '明天';
+  /// 根据熟练度判断动作状态
+  String getMoveStatus(int masteryLevel) {
+    if (masteryLevel < 30) {
+      return 'new';
+    } else if (masteryLevel < 70) {
+      return 'learning';
     } else {
-      final difference = targetDate.difference(today).inDays;
-      if (difference < 7) {
-        return '$difference 天后';
-      } else if (difference < 30) {
-        final weeks = (difference / 7).floor();
-        return '$weeks 周后';
-      } else {
-        final months = (difference / 30).floor();
-        return '$months 个月后';
-      }
+      return 'reviewing';
+    }
+  }
+
+  /// 获取反馈对应的熟练度变化描述
+  String getFeedbackDescription(FeedbackType feedback) {
+    switch (feedback) {
+      case FeedbackType.again:
+        return '熟练度 -20';
+      case FeedbackType.hard:
+        return '熟练度 +5';
+      case FeedbackType.easy:
+        return '熟练度 +15';
     }
   }
 }

@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../providers/dance_moves_provider.dart';
+import '../../providers/statistics_provider.dart';
 
 /// 首页
 class HomePage extends ConsumerWidget {
@@ -11,8 +12,10 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final dueCountAsync = ref.watch(dueCountProvider);
+    final moveCountAsync = ref.watch(moveCountProvider);
     final allMovesAsync = ref.watch(allMovesProvider);
+    final weekReviewAsync = ref.watch(weekReviewCountProvider);
+    final streakAsync = ref.watch(streakDaysProvider);
 
     return Scaffold(
       appBar: AppBar(
@@ -20,9 +23,7 @@ class HomePage extends ConsumerWidget {
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
-            onPressed: () {
-              // TODO: 设置页面
-            },
+            onPressed: () => context.push('/settings'),
           ),
         ],
       ),
@@ -31,8 +32,8 @@ class HomePage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 今日待办卡片
-            _buildTodayCard(context, ref, dueCountAsync),
+            // 动作库卡片
+            _buildLibraryCard(context, ref, moveCountAsync),
             const SizedBox(height: 24),
 
             // 快捷操作
@@ -48,18 +49,18 @@ class HomePage extends ConsumerWidget {
             const Spacer(),
 
             // 统计信息
-            _buildStats(context, allMovesAsync),
+            _buildStats(context, allMovesAsync, weekReviewAsync, streakAsync),
           ],
         ),
       ),
     );
   }
 
-  /// 今日待办卡片
-  Widget _buildTodayCard(
+  /// 动作库卡片
+  Widget _buildLibraryCard(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<int> dueCountAsync,
+    AsyncValue<int> moveCountAsync,
   ) {
     return Container(
       width: double.infinity,
@@ -76,7 +77,7 @@ class HomePage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '今日待复习',
+            '动作库',
             style: AppTextStyles.body.copyWith(
               color: AppColors.textPrimary.withOpacity(0.8),
             ),
@@ -85,7 +86,7 @@ class HomePage extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              dueCountAsync.when(
+              moveCountAsync.when(
                 data: (count) => Text(
                   '$count',
                   style: AppTextStyles.heading1.copyWith(
@@ -124,9 +125,9 @@ class HomePage extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: dueCountAsync.maybeWhen(
+              onPressed: moveCountAsync.maybeWhen(
                 data: (count) => count > 0
-                    ? () => _startReview(context, ref)
+                    ? () => _startTraining(context, ref)
                     : null,
                 orElse: () => null,
               ),
@@ -166,7 +167,12 @@ class HomePage extends ConsumerWidget {
   }
 
   /// 统计信息
-  Widget _buildStats(BuildContext context, AsyncValue<List> allMovesAsync) {
+  Widget _buildStats(
+    BuildContext context,
+    AsyncValue<List> allMovesAsync,
+    AsyncValue<int> weekReviewAsync,
+    AsyncValue<int> streakAsync,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -190,7 +196,10 @@ class HomePage extends ConsumerWidget {
           ),
           _StatItem(
             label: '本周复习',
-            value: '-', // TODO: 统计本周复习次数
+            value: weekReviewAsync.maybeWhen(
+              data: (count) => count.toString(),
+              orElse: () => '-',
+            ),
           ),
           Container(
             width: 1,
@@ -199,15 +208,18 @@ class HomePage extends ConsumerWidget {
           ),
           _StatItem(
             label: '连续打卡',
-            value: '-', // TODO: 统计连续打卡天数
+            value: streakAsync.maybeWhen(
+              data: (days) => days.toString(),
+              orElse: () => '-',
+            ),
           ),
         ],
       ),
     );
   }
 
-  /// 开始复习
-  void _startReview(BuildContext context, WidgetRef ref) {
+  /// 开始训练
+  void _startTraining(BuildContext context, WidgetRef ref) {
     context.push('/review');
   }
 }

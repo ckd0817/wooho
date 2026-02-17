@@ -18,35 +18,35 @@ final srsAlgorithmProvider = Provider<SrsAlgorithmService>((ref) {
 
 /// 复习状态
 class ReviewState {
-  final List<DanceMove> dueMoves;
+  final List<DanceMove> trainingMoves;
   final int currentIndex;
   final Set<String> completedIds;
 
   const ReviewState({
-    this.dueMoves = const [],
+    this.trainingMoves = const [],
     this.currentIndex = 0,
     this.completedIds = const {},
   });
 
   DanceMove? get currentMove =>
-      currentIndex < dueMoves.length ? dueMoves[currentIndex] : null;
+      currentIndex < trainingMoves.length ? trainingMoves[currentIndex] : null;
 
-  bool get isComplete => currentIndex >= dueMoves.length;
+  bool get isComplete => currentIndex >= trainingMoves.length;
 
   int get completedCount => completedIds.length;
 
-  int get totalCount => dueMoves.length;
+  int get totalCount => trainingMoves.length;
 
   double get progress =>
       totalCount > 0 ? completedCount / totalCount : 0.0;
 
   ReviewState copyWith({
-    List<DanceMove>? dueMoves,
+    List<DanceMove>? trainingMoves,
     int? currentIndex,
     Set<String>? completedIds,
   }) {
     return ReviewState(
-      dueMoves: dueMoves ?? this.dueMoves,
+      trainingMoves: trainingMoves ?? this.trainingMoves,
       currentIndex: currentIndex ?? this.currentIndex,
       completedIds: completedIds ?? this.completedIds,
     );
@@ -67,54 +67,46 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
     this._ref,
   ) : super(const AsyncValue.data(ReviewState()));
 
-  /// 加载今日待复习动作
-  Future<void> loadDueMoves() async {
+  /// 加载训练动作（按优先级排序，选取前 N 个）
+  Future<void> loadTrainingMoves({int count = 10}) async {
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final moves = await _moveRepository.getDueMoves();
-      return ReviewState(dueMoves: moves);
+      final moves = await _moveRepository.getTrainingMoves(count: count);
+      return ReviewState(trainingMoves: moves);
     });
   }
 
-  /// 提交复习评分
+  /// 提交训练反馈
   Future<void> submitFeedback(FeedbackType feedback) async {
     final currentState = state.value;
     if (currentState == null || currentState.currentMove == null) return;
 
     final move = currentState.currentMove!;
-    final previousInterval = move.interval;
-    final newInterval = _srsAlgorithm.calculateNewInterval(
-      previousInterval,
-      feedback,
-    );
-    final nextReviewDate = _srsAlgorithm.calculateNextReviewDate(newInterval);
+    final previousMastery = move.masteryLevel;
+    final newMastery = _srsAlgorithm.calculateNewMastery(previousMastery, feedback);
+    final newStatusString = _srsAlgorithm.getMoveStatus(newMastery);
+    final newStatus = newStatusString == 'new' ? MoveStatus.new_ :
+                      newStatusString == 'learning' ? MoveStatus.learning :
+                      MoveStatus.reviewing;
+    final now = DateTime.now().millisecondsSinceEpoch;
 
     // 更新动作
-    final updatedMove = DanceMove(
-      id: move.id,
-      name: move.name,
-      category: move.category,
-      videoSourceType: move.videoSourceType,
-      videoUri: move.videoUri,
-      trimStart: move.trimStart,
-      trimEnd: move.trimEnd,
-      status: _determineStatus(newInterval),
-      interval: newInterval,
-      nextReviewDate: nextReviewDate.millisecondsSinceEpoch,
-      masteryLevel: _calculateMasteryLevel(newInterval),
-      createdAt: move.createdAt,
-      updatedAt: DateTime.now().millisecondsSinceEpoch,
+    final updatedMove = move.copyWith(
+      status: newStatus,
+      masteryLevel: newMastery,
+      lastPracticedAt: now,
+      updatedAt: now,
     );
 
     await _moveRepository.updateMove(updatedMove);
 
-    // 记录复习历史
+    // 记录训练历史
     await _reviewRepository.addRecord(ReviewRecord(
       moveId: move.id,
       feedback: feedback.name,
-      reviewedAt: DateTime.now().millisecondsSinceEpoch,
-      previousInterval: previousInterval,
-      newInterval: newInterval,
+      reviewedAt: now,
+      previousInterval: previousMastery,
+      newInterval: newMastery,
     ));
 
     // 更新状态
@@ -127,32 +119,9 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
     ));
 
     // 刷新相关 Providers
-    _ref.invalidate(dueMovesProvider);
-    _ref.invalidate(dueCountProvider);
-  }
-
-  /// 根据间隔确定状态
-  MoveStatus _determineStatus(int interval) {
-    if (interval <= 1) {
-      return MoveStatus.new_;
-    } else if (interval <= 7) {
-      return MoveStatus.learning;
-    } else {
-      return MoveStatus.reviewing;
-    }
-  }
-
-  /// 计算熟练度等级 (0-100)
-  int _calculateMasteryLevel(int interval) {
-    // 1天 = 0, 7天 = 30, 30天 = 60, 90天+ = 100
-    if (interval <= 1) return 0;
-    if (interval <= 3) return 10;
-    if (interval <= 7) return 30;
-    if (interval <= 14) return 45;
-    if (interval <= 30) return 60;
-    if (interval <= 60) return 75;
-    if (interval <= 90) return 90;
-    return 100;
+    _ref.invalidate(allMovesProvider);
+    _ref.invalidate(trainingMovesProvider);
+    _ref.invalidate(moveCountProvider);
   }
 
   /// 获取已完成的动作列表 (用于串联训练)
@@ -160,7 +129,7 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
     final currentState = state.value;
     if (currentState == null) return [];
 
-    return currentState.dueMoves
+    return currentState.trainingMoves
         .where((move) => currentState.completedIds.contains(move.id))
         .toList();
   }

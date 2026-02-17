@@ -1,9 +1,23 @@
 [
   {
     "id": "drum-house-128",
-    "name": "House Drums Hangar",
+    "name": "House Drums 128BPM",
     "assetPath": "assets/audio/drum_house_128bpm.wav",
     "bpm": 128,
+    "isDefault": true
+  },
+  {
+    "id": "drum-hiphop-90",
+    "name": "Hip Hop Drums 90BPM",
+    "assetPath": "assets/audio/drum_hiphop_90bpm.mp3",
+    "bpm": 90,
+    "isDefault": true
+  },
+  {
+    "id": "drum-slow-60",
+    "name": "Slow Drums 60BPM",
+    "assetPath": "assets/audio/drum_slow_60bpm.mp3",
+    "bpm": 60,
     "isDefault": true
   }
 ]

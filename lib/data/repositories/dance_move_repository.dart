@@ -20,14 +20,14 @@ class DanceMoveRepository {
     return await _dao.getAll();
   }
 
+  /// 获取训练动作列表（按优先级排序，选取前 N 个）
+  Future<List<DanceMove>> getTrainingMoves({int count = 10}) async {
+    return await _dao.getMovesForTraining(count: count);
+  }
+
   /// 根据 ID 获取动作
   Future<DanceMove?> getMoveById(String id) async {
     return await _dao.getById(id);
-  }
-
-  /// 获取今日待复习动作
-  Future<List<DanceMove>> getDueMoves() async {
-    return await _dao.getDueMoves();
   }
 
   /// 按分类获取动作
@@ -53,10 +53,5 @@ class DanceMoveRepository {
   /// 获取动作总数
   Future<int> getMoveCount() async {
     return await _dao.getCount();
-  }
-
-  /// 获取待复习动作数量
-  Future<int> getDueCount() async {
-    return await _dao.getDueCount();
   }
 }

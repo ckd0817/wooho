@@ -13,19 +13,18 @@ _$DanceMoveImpl _$$DanceMoveImplFromJson(Map<String, dynamic> json) =>
       category: json['category'] as String,
       videoSourceType: $enumDecode(
         _$VideoSourceTypeEnumMap,
-        json['videoSourceType'],
+        json['video_source_type'],
       ),
-      videoUri: json['videoUri'] as String,
-      trimStart: (json['trimStart'] as num?)?.toInt() ?? 0,
-      trimEnd: (json['trimEnd'] as num?)?.toInt() ?? 0,
+      videoUri: json['video_uri'] as String,
+      trimStart: (json['trim_start'] as num?)?.toInt() ?? 0,
+      trimEnd: (json['trim_end'] as num?)?.toInt() ?? 0,
       status:
           $enumDecodeNullable(_$MoveStatusEnumMap, json['status']) ??
           MoveStatus.new_,
-      interval: (json['interval'] as num?)?.toInt() ?? 1,
-      nextReviewDate: (json['nextReviewDate'] as num).toInt(),
-      masteryLevel: (json['masteryLevel'] as num?)?.toInt() ?? 0,
-      createdAt: (json['createdAt'] as num).toInt(),
-      updatedAt: (json['updatedAt'] as num?)?.toInt(),
+      masteryLevel: (json['mastery_level'] as num?)?.toInt() ?? 0,
+      lastPracticedAt: (json['last_practiced_at'] as num?)?.toInt() ?? 0,
+      createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
+      updatedAt: (json['updated_at'] as num?)?.toInt(),
     );
 
 Map<String, dynamic> _$$DanceMoveImplToJson(_$DanceMoveImpl instance) =>
@@ -33,21 +32,22 @@ Map<String, dynamic> _$$DanceMoveImplToJson(_$DanceMoveImpl instance) =>
       'id': instance.id,
       'name': instance.name,
       'category': instance.category,
-      'videoSourceType': _$VideoSourceTypeEnumMap[instance.videoSourceType]!,
-      'videoUri': instance.videoUri,
-      'trimStart': instance.trimStart,
-      'trimEnd': instance.trimEnd,
+      'video_source_type': _$VideoSourceTypeEnumMap[instance.videoSourceType]!,
+      'video_uri': instance.videoUri,
+      'trim_start': instance.trimStart,
+      'trim_end': instance.trimEnd,
       'status': _$MoveStatusEnumMap[instance.status]!,
-      'interval': instance.interval,
-      'nextReviewDate': instance.nextReviewDate,
-      'masteryLevel': instance.masteryLevel,
-      'createdAt': instance.createdAt,
-      'updatedAt': instance.updatedAt,
+      'mastery_level': instance.masteryLevel,
+      'last_practiced_at': instance.lastPracticedAt,
+      'created_at': instance.createdAt,
+      'updated_at': instance.updatedAt,
     };
 
 const _$VideoSourceTypeEnumMap = {
   VideoSourceType.localGallery: 'local_gallery',
   VideoSourceType.bundledAsset: 'bundled_asset',
+  VideoSourceType.webUrl: 'web_url',
+  VideoSourceType.none: 'none',
 };
 
 const _$MoveStatusEnumMap = {

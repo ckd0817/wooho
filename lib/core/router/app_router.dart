@@ -5,6 +5,7 @@ import '../../presentation/pages/library/library_page.dart';
 import '../../presentation/pages/library/add_move_page.dart';
 import '../../presentation/pages/review/review_page.dart';
 import '../../presentation/pages/drill/drill_page.dart';
+import '../../presentation/pages/settings/settings_page.dart';
 
 /// 路由路径常量
 class Routes {
@@ -15,6 +16,7 @@ class Routes {
   static const String addMove = '/library/add';
   static const String review = '/review';
   static const String drill = '/drill';
+  static const String settings = '/settings';
 }
 
 /// 应用路由配置
@@ -51,6 +53,11 @@ class AppRouter {
           final moveIds = state.extra as List<String>?;
           return DrillPage(moveIds: moveIds ?? []);
         },
+      ),
+      GoRoute(
+        path: Routes.settings,
+        name: 'settings',
+        builder: (context, state) => const SettingsPage(),
       ),
     ],
     errorBuilder: (context, state) => Scaffold(

@@ -12,20 +12,19 @@ class DanceMove with _$DanceMove {
     required String category,
 
     // 视频源数据
-    required VideoSourceType videoSourceType,
-    required String videoUri,
-    @Default(0) int trimStart, // 毫秒
-    @Default(0) int trimEnd, // 毫秒
+    @JsonKey(name: 'video_source_type') required VideoSourceType videoSourceType,
+    @JsonKey(name: 'video_uri') required String videoUri,
+    @Default(0) @JsonKey(name: 'trim_start') int trimStart, // 毫秒
+    @Default(0) @JsonKey(name: 'trim_end') int trimEnd, // 毫秒
 
-    // SRS 学习数据
+    // 训练数据
     @Default(MoveStatus.new_) MoveStatus status,
-    @Default(1) int interval, // 当前间隔天数
-    required int nextReviewDate, // Timestamp (milliseconds since epoch)
-    @Default(0) int masteryLevel, // 0-100
+    @JsonKey(name: 'mastery_level') @Default(0) int masteryLevel, // 0-100 熟练度
+    @JsonKey(name: 'last_practiced_at') @Default(0) int lastPracticedAt, // Timestamp 上次练习时间
 
     // 元数据
-    required int createdAt, // Timestamp
-    int? updatedAt, // Timestamp
+    @JsonKey(name: 'created_at') @Default(0) int createdAt, // Timestamp
+    @JsonKey(name: 'updated_at') int? updatedAt, // Timestamp
   }) = _DanceMove;
 
   factory DanceMove.fromJson(Map<String, dynamic> json) =>
@@ -38,6 +37,10 @@ enum VideoSourceType {
   localGallery,
   @JsonValue('bundled_asset')
   bundledAsset,
+  @JsonValue('web_url')
+  webUrl,
+  @JsonValue('none')
+  none, // 无视频源
 }
 
 /// 动作状态

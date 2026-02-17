@@ -50,10 +50,10 @@ class _DrillPageState extends ConsumerState<DrillPage> {
       _isLoading = false;
     });
 
-    // 自动开始训练
+    // 准备训练数据（不自动开始，等待用户点击播放）
     if (moves.isNotEmpty) {
       Future.microtask(() {
-        ref.read(drillProvider.notifier).startDrill(moves);
+        ref.read(drillProvider.notifier).prepareDrill(moves);
       });
     }
   }
@@ -61,6 +61,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
   @override
   Widget build(BuildContext context) {
     final drillState = ref.watch(drillProvider);
+    final currentBeat = ref.watch(currentBeatProvider);
 
     if (_isLoading) {
       return Scaffold(
@@ -105,7 +106,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
 
             // 主要内容区域
             Expanded(
-              child: _buildMainContent(drillState),
+              child: _buildMainContent(drillState, currentBeat),
             ),
 
             // 底部控制面板
@@ -149,7 +150,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
   }
 
   /// 主要内容
-  Widget _buildMainContent(DrillState state) {
+  Widget _buildMainContent(DrillState state, int currentBeat) {
     final currentMove = state.currentMove;
     final nextMove = state.nextMove;
 
@@ -160,6 +161,15 @@ class _DrillPageState extends ConsumerState<DrillPage> {
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
+            // 鼓点显示器
+            if (state.hasMoves)
+              _BeatIndicator(
+                currentBeat: currentBeat,
+                isPlaying: state.isPlaying,
+              ),
+
+            const SizedBox(height: 32),
+
             // 当前动作名称 (大字)
             if (currentMove != null)
               Padding(
@@ -355,9 +365,12 @@ class _DrillPageState extends ConsumerState<DrillPage> {
     if (state.isPlaying) {
       notifier.pauseDrill();
     } else {
+      debugPrint('_togglePlayPause: hasMoves=${state.hasMoves}, _moves=${_moves?.length}');
       if (state.hasMoves) {
+        debugPrint('Calling resumeDrill');
         notifier.resumeDrill();
       } else if (_moves != null && _moves!.isNotEmpty) {
+        debugPrint('Calling startDrill');
         notifier.startDrill(_moves!);
       }
     }
@@ -493,6 +506,64 @@ class _ControlButton extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 鼓点显示器
+class _BeatIndicator extends StatelessWidget {
+  final int currentBeat;
+  final bool isPlaying;
+
+  const _BeatIndicator({
+    required this.currentBeat,
+    required this.isPlaying,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: List.generate(8, (index) {
+        final isActive = index == currentBeat && isPlaying;
+        final isPast = isPlaying && index < currentBeat;
+
+        return AnimatedContainer(
+          duration: const Duration(milliseconds: 100),
+          curve: Curves.easeOut,
+          margin: const EdgeInsets.symmetric(horizontal: 4),
+          transform: Matrix4.translationValues(0, isActive ? -8 : 0, 0),
+          child: Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: isActive
+                  ? AppColors.primary
+                  : isPast
+                      ? AppColors.primary.withValues(alpha: 0.4)
+                      : AppColors.surfaceLight.withValues(alpha: 0.3),
+              border: Border.all(
+                color: isActive
+                    ? AppColors.primaryLight
+                    : AppColors.surfaceLight.withValues(alpha: 0.5),
+                width: isActive ? 2 : 1,
+              ),
+            ),
+            child: Center(
+              child: Text(
+                '${index + 1}',
+                style: AppTextStyles.bodySmall.copyWith(
+                  color: isActive
+                      ? AppColors.textPrimary
+                      : AppColors.drillTextSecondary,
+                  fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                ),
+              ),
+            ),
+          ),
+        );
+      }),
     );
   }
 }

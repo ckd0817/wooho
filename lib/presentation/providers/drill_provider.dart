@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../data/models/dance_move.dart';
 import '../../data/models/drum_loop.dart';
@@ -11,6 +12,9 @@ final audioEngineProvider = Provider<AudioEngine>((ref) {
   ref.onDispose(() => engine.dispose());
   return engine;
 });
+
+/// 当前节拍 Provider（独立管理，确保 UI 更新）
+final currentBeatProvider = StateProvider<int>((ref) => 0);
 
 /// 串联训练状态
 class DrillState {
@@ -71,10 +75,12 @@ class DrillState {
 /// 串联训练 Notifier
 class DrillNotifier extends StateNotifier<DrillState> {
   final AudioEngine _audioEngine;
+  final Ref _ref;
   Timer? _moveTimer;
   Timer? _announceTimer;
-  // ignore: unused_field
-  final Ref _ref; // 保留用于将来扩展
+  Timer? _beatTimer;
+  int _beatCount = 0;
+  bool _isPlaying = false; // 实例级别的播放状态，用于 Timer 回调
 
   DrillNotifier(this._audioEngine, this._ref) : super(const DrillState());
 
@@ -84,6 +90,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
 
     // 停止之前的计时器
     _cancelTimers();
+    _isPlaying = false; // 重置状态
 
     // 随机打乱队列
     final shuffled = List<DanceMove>.from(moves)..shuffle();
@@ -95,6 +102,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
     final defaultBpm = _audioEngine.currentDrumLoop?.bpm ?? AppConstants.defaultBpm;
     await _audioEngine.setBpm(defaultBpm);
 
+    _isPlaying = true; // 更新实例变量
     state = DrillState(
       queue: shuffled,
       currentIndex: 0,
@@ -106,11 +114,37 @@ class DrillNotifier extends StateNotifier<DrillState> {
 
     await _audioEngine.playBgm();
 
-    // 预告第一个动作
-    await _audioEngine.speakMoveName(state.currentMove!.name);
-
     // 开始动作循环
     _startMoveCycle();
+  }
+
+  /// 准备训练（不自动开始，等待用户点击播放）
+  Future<void> prepareDrill(List<DanceMove> moves) async {
+    if (moves.isEmpty) return;
+
+    // 停止之前的计时器
+    _cancelTimers();
+    _isPlaying = false; // 确保初始状态为暂停
+
+    // 随机打乱队列
+    final shuffled = List<DanceMove>.from(moves)..shuffle();
+
+    // 初始化音频引擎（但不播放）
+    await _audioEngine.initialize();
+
+    // 使用音频的原始 BPM 作为默认值
+    final defaultBpm = _audioEngine.currentDrumLoop?.bpm ?? AppConstants.defaultBpm;
+    await _audioEngine.setBpm(defaultBpm);
+
+    // 设置状态但不开始播放
+    state = DrillState(
+      queue: shuffled,
+      currentIndex: 0,
+      isPlaying: false,  // 初始为暂停状态
+      bpm: defaultBpm,
+      currentDrumLoop: _audioEngine.currentDrumLoop,
+      availableLoops: _audioEngine.availableLoops,
+    );
   }
 
   /// 开始动作循环
@@ -118,7 +152,18 @@ class DrillNotifier extends StateNotifier<DrillState> {
     final moveDurationMs = _audioEngine.getMoveDurationMs();
     final announceDurationMs = _audioEngine.getAnnounceDurationMs();
 
+    debugPrint('_startMoveCycle called: moveDuration=$moveDurationMs ms, isPlaying=${state.isPlaying}, _isPlaying=$_isPlaying');
+
+    // 如果外部状态显示正在播放但内部状态不是，同步它们
+    if (state.isPlaying && !_isPlaying) {
+      debugPrint('Syncing _isPlaying to match state.isPlaying');
+      _isPlaying = true;
+    }
+
     _cancelTimers();
+
+    // 启动节拍循环
+    _startBeatCycle();
 
     // 在动作结束前 2 拍预告下一个动作
     final announceDelayMs = moveDurationMs - announceDurationMs;
@@ -132,21 +177,51 @@ class DrillNotifier extends StateNotifier<DrillState> {
       Duration(milliseconds: moveDurationMs),
       () => _onMoveComplete(),
     );
+
+    debugPrint('Timers created: beatTimer=$_beatTimer, moveTimer=$_moveTimer');
   }
 
-  /// 预告下一个动作
-  Future<void> _announceNextMove() async {
-    if (!state.isPlaying) return;
+  /// 开始节拍循环
+  void _startBeatCycle() {
+    final moveDurationMs = _audioEngine.getMoveDurationMs();
+    final beatDurationMs = moveDurationMs ~/ 8;
 
-    final nextMove = state.nextMove;
-    if (nextMove != null) {
-      await _audioEngine.speakMoveName(nextMove.name);
-    }
+    debugPrint('Beat cycle started: moveDuration=$moveDurationMs ms, beatDuration=$beatDurationMs ms, _isPlaying=$_isPlaying');
+
+    _beatTimer?.cancel();
+    _beatCount = 0;
+    // 使用独立的 currentBeatProvider 来更新节拍
+    _ref.read(currentBeatProvider.notifier).state = 0;
+    debugPrint('Initial currentBeat = 0');
+
+    _beatTimer = Timer.periodic(
+      Duration(milliseconds: beatDurationMs),
+      (_) {
+        if (!_isPlaying) {
+          debugPrint('Beat timer: not playing (_isPlaying=$_isPlaying), skip');
+          return;
+        }
+
+        _beatCount = (_beatCount + 1) % 8;
+        debugPrint('Beat: $_beatCount');
+        // 使用独立的 currentBeatProvider 来更新节拍
+        _ref.read(currentBeatProvider.notifier).state = _beatCount;
+      },
+    );
+  }
+
+  /// 预告下一个动作 (已移除 TTS)
+  void _announceNextMove() {
+    // TTS 功能已移除
   }
 
   /// 当前动作完成，切换到下一个
   void _onMoveComplete() {
-    if (!state.isPlaying) return;
+    // 使用实例变量进行检查
+    if (!_isPlaying) {
+      debugPrint('_onMoveComplete: not playing, return');
+      return;
+    }
 
     final nextIndex = state.currentIndex + 1;
 
@@ -178,8 +253,8 @@ class DrillNotifier extends StateNotifier<DrillState> {
     await _audioEngine.setBpm(clampedBpm);
     state = state.copyWith(bpm: clampedBpm);
 
-    // 重启计时器以应用新的时长
-    if (state.isPlaying) {
+    // 重启计时器以应用新的时长（使用实例变量检查）
+    if (_isPlaying) {
       _startMoveCycle();
     }
   }
@@ -192,25 +267,49 @@ class DrillNotifier extends StateNotifier<DrillState> {
 
   /// 暂停训练
   Future<void> pauseDrill() async {
+    _isPlaying = false; // 先更新实例变量
     _cancelTimers();
     await _audioEngine.pauseBgm();
     state = state.copyWith(isPlaying: false);
   }
 
-  /// 恢复训练
+  /// 恢复训练（或从准备状态开始）
   Future<void> resumeDrill() async {
-    if (!state.hasMoves) return;
+    debugPrint('resumeDrill called, hasMoves=${state.hasMoves}');
 
-    await _audioEngine.playBgm();
+    if (!state.hasMoves) {
+      debugPrint('resumeDrill: no moves, returning');
+      return;
+    }
+
+    // 先更新实例变量，确保 Timer 回调可以立即使用
+    _isPlaying = true;
+
+    // 再更新状态，确保 UI 立即响应
     state = state.copyWith(isPlaying: true);
+
+    try {
+      // 确保音频引擎已初始化
+      await _audioEngine.initialize();
+      await _audioEngine.setBpm(state.bpm);
+
+      // 播放背景音乐
+      await _audioEngine.playBgm();
+    } catch (e) {
+      debugPrint('Drill resume error: $e');
+    }
+
+    debugPrint('Starting move cycle...');
+    // 启动动作循环
     _startMoveCycle();
+    debugPrint('Move cycle started');
   }
 
   /// 停止训练
   Future<void> stopDrill() async {
+    _isPlaying = false; // 先更新实例变量
     _cancelTimers();
     await _audioEngine.stopBgm();
-    await _audioEngine.stopTts();
     state = state.copyWith(isPlaying: false);
   }
 
@@ -220,6 +319,8 @@ class DrillNotifier extends StateNotifier<DrillState> {
     _moveTimer = null;
     _announceTimer?.cancel();
     _announceTimer = null;
+    _beatTimer?.cancel();
+    _beatTimer = null;
   }
 
   @override

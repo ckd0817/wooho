@@ -7,12 +7,16 @@ import 'core/router/app_router.dart';
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
-  // 初始化后台音频服务
-  await JustAudioBackground.init(
-    androidNotificationChannelId: 'com.danceloop.app.audio',
-    androidNotificationChannelName: 'DanceLoop Audio',
-    androidNotificationOngoing: true,
-  );
+  // 初始化后台音频服务 (如果失败则继续，后台播放功能将不可用)
+  try {
+    await JustAudioBackground.init(
+      androidNotificationChannelId: 'com.danceloop.app.audio',
+      androidNotificationChannelName: 'DanceLoop Audio',
+      androidNotificationOngoing: true,
+    );
+  } catch (e) {
+    debugPrint('后台音频初始化失败: $e');
+  }
 
   runApp(
     const ProviderScope(

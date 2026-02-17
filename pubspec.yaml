@@ -1,0 +1,65 @@
+name: danceloop
+description: "DanceLoop SRS - Street Dance Learning App with Spaced Repetition System"
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+
+  # ============ 状态管理 ============
+  flutter_riverpod: ^2.4.9
+  riverpod_annotation: ^2.3.3
+
+  # ============ 数据存储 ============
+  sqflite: ^2.3.2
+  path: ^1.8.3
+  path_provider: ^2.1.2
+
+  # ============ 视频相关 ============
+  video_player: ^2.8.2
+  image_picker: ^1.0.7
+
+  # ============ 音频相关 (核心) ============
+  just_audio: ^0.9.37
+  just_audio_background: ^0.0.1-beta.11
+  audio_session: ^0.1.18
+
+  # ============ TTS ============
+  flutter_tts: ^4.0.2
+
+  # ============ 路由 ============
+  go_router: ^13.1.0
+
+  # ============ UI 组件 ============
+  cupertino_icons: ^1.0.8
+  google_fonts: ^6.1.0
+  flutter_animate: ^4.3.0
+
+  # ============ 工具类 ============
+  freezed_annotation: ^2.4.1
+  json_annotation: ^4.8.1
+  uuid: ^4.3.1
+  intl: ^0.19.0
+  logger: ^2.0.2+1
+  permission_handler: ^11.2.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+  build_runner: ^2.4.8
+  freezed: ^2.4.6
+  json_serializable: ^6.7.1
+  riverpod_generator: ^2.3.9
+  mockito: ^5.4.4
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/audio/
+    - assets/data/

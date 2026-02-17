@@ -273,18 +273,23 @@ class _CategoryChip extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        height: 32,
+        padding: const EdgeInsets.symmetric(horizontal: 16),
         decoration: BoxDecoration(
           color: isSelected ? AppColors.primary : AppColors.surface,
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.surfaceLight,
           ),
         ),
-        child: Text(
-          label,
-          style: AppTextStyles.bodySmall.copyWith(
-            color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+        child: Center(
+          child: Text(
+            label,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+            ),
+            overflow: TextOverflow.visible,
+            softWrap: false,
           ),
         ),
       ),

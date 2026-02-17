@@ -1,0 +1,9 @@
+[
+  {
+    "id": "drum-house-128",
+    "name": "House Drums Hangar",
+    "assetPath": "assets/audio/drum_house_128bpm.wav",
+    "bpm": 128,
+    "isDefault": true
+  }
+]

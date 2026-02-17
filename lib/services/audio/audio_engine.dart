@@ -1,11 +1,15 @@
 import 'dart:async';
+import 'dart:convert';
+import 'package:flutter/services.dart';
 import 'package:just_audio/just_audio.dart';
 import 'package:audio_session/audio_session.dart';
 import 'package:flutter_tts/flutter_tts.dart';
 import '../../core/constants/audio_constants.dart';
 import '../../core/constants/app_constants.dart';
+import '../../data/models/drum_loop.dart';
 
 /// 音频引擎 - 管理背景音乐、TTS 和 Audio Ducking
+/// 支持多个不同 BPM 的鼓点音频文件
 class AudioEngine {
   final AudioPlayer _bgmPlayer = AudioPlayer();
   final FlutterTts _tts = FlutterTts();
@@ -13,6 +17,8 @@ class AudioEngine {
   bool _isInitialized = false;
   bool _isPlaying = false;
   int _currentBpm = AppConstants.defaultBpm;
+  DrumLoop? _currentDrumLoop;
+  List<DrumLoop> _availableLoops = [];
 
   /// 是否正在播放
   bool get isPlaying => _isPlaying;
@@ -20,26 +26,84 @@ class AudioEngine {
   /// 当前 BPM
   int get currentBpm => _currentBpm;
 
+  /// 当前音频
+  DrumLoop? get currentDrumLoop => _currentDrumLoop;
+
+  /// 可用的音频列表
+  List<DrumLoop> get availableLoops => _availableLoops;
+
+  /// 加载音频配置
+  Future<void> _loadDrumLoops() async {
+    try {
+      final String jsonString = await rootBundle.loadString(
+        'assets/data/drum_loops.json',
+      );
+      final List<dynamic> jsonList = json.decode(jsonString);
+      _availableLoops = jsonList.map((json) => DrumLoop.fromJson(json)).toList();
+    } catch (e) {
+      // 如果加载失败，使用空列表
+      _availableLoops = [];
+    }
+  }
+
+  /// 根据目标 BPM 选择最接近的音频
+  DrumLoop? _selectBestLoop(int targetBpm) {
+    if (_availableLoops.isEmpty) return null;
+
+    // 找到最接近的音频
+    DrumLoop? bestLoop;
+    int minDiff = double.maxFinite.toInt();
+
+    for (final loop in _availableLoops) {
+      final diff = (loop.bpm - targetBpm).abs();
+      if (diff < minDiff) {
+        minDiff = diff;
+        bestLoop = loop;
+      }
+    }
+
+    return bestLoop;
+  }
+
   /// 初始化音频引擎
   Future<void> initialize() async {
     if (_isInitialized) return;
 
     try {
-      // 1. 配置音频会话 (支持后台播放)
+      // 1. 加载音频配置
+      await _loadDrumLoops();
+
+      // 2. 配置音频会话 (支持后台播放)
       final session = await AudioSession.instance;
       await session.configure(const AudioSessionConfiguration.music());
 
-      // 2. 初始化 TTS
+      // 3. 初始化 TTS
       await _initTts();
 
-      // 3. 加载背景音乐
-      await _bgmPlayer.setAsset('assets/audio/drum_loop_90bpm.mp3');
-      await _bgmPlayer.setLoopMode(LoopMode.one);
+      // 4. 加载默认音频
+      await _loadAudioForBpm(_currentBpm);
 
       _isInitialized = true;
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// 加载指定 BPM 的音频
+  Future<void> _loadAudioForBpm(int bpm) async {
+    final loop = _selectBestLoop(bpm);
+    if (loop == null) {
+      throw Exception('没有可用的鼓点音频');
+    }
+
+    // 如果是同一个音频，不需要重新加载
+    if (_currentDrumLoop?.id == loop.id) {
+      return;
+    }
+
+    _currentDrumLoop = loop;
+    await _bgmPlayer.setAsset(loop.assetPath);
+    await _bgmPlayer.setLoopMode(LoopMode.one);
   }
 
   /// 初始化 TTS
@@ -58,10 +122,25 @@ class AudioEngine {
   Future<void> setBpm(int bpm) async {
     _currentBpm = bpm.clamp(AppConstants.minBpm, AppConstants.maxBpm);
 
-    // 通过调整播放速度来改变 BPM
-    // 目标速度 = 目标BPM / 原始BPM
-    final speed = _currentBpm / AudioConstants.originalBpm;
-    await _bgmPlayer.setSpeed(speed);
+    // 检查是否需要切换音频
+    final bestLoop = _selectBestLoop(_currentBpm);
+    if (bestLoop != null && bestLoop.id != _currentDrumLoop?.id) {
+      // 需要切换音频
+      final wasPlaying = _isPlaying;
+      if (wasPlaying) {
+        await _bgmPlayer.stop();
+      }
+      await _loadAudioForBpm(_currentBpm);
+      if (wasPlaying) {
+        await _bgmPlayer.play();
+      }
+    }
+
+    // 计算播放速度 (基于当前音频的原始 BPM)
+    if (_currentDrumLoop != null) {
+      final speed = _currentBpm / _currentDrumLoop!.bpm;
+      await _bgmPlayer.setSpeed(speed);
+    }
   }
 
   /// 播放背景鼓点

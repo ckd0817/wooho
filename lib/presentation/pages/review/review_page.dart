@@ -192,7 +192,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             child: _FeedbackButton(
               label: '模糊',
               color: AppColors.feedbackAgain,
-              description: '1天后复习',
+              description: '熟练度 -20',
               onPressed: () => _submitFeedback(context, ref, FeedbackType.again),
             ),
           ),
@@ -201,7 +201,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             child: _FeedbackButton(
               label: '认识',
               color: AppColors.feedbackHard,
-              description: '1.2倍间隔',
+              description: '熟练度 +5',
               onPressed: () => _submitFeedback(context, ref, FeedbackType.hard),
             ),
           ),
@@ -210,7 +210,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             child: _FeedbackButton(
               label: '熟练',
               color: AppColors.feedbackEasy,
-              description: '2.5倍间隔',
+              description: '熟练度 +15',
               onPressed: () => _submitFeedback(context, ref, FeedbackType.easy),
             ),
           ),

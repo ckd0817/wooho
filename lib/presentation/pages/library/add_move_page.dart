@@ -684,11 +684,11 @@ class _MasteryCard extends StatelessWidget {
   String get _description {
     switch (level) {
       case MasteryLevel.new_:
-        return '1天后复习';
+        return '初始熟练度: 0';
       case MasteryLevel.learning:
-        return '3天后复习';
+        return '初始熟练度: 30';
       case MasteryLevel.mastered:
-        return '7天后复习';
+        return '初始熟练度: 70';
     }
   }
 

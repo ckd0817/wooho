@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -493,7 +495,7 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
         await _videoController?.dispose();
 
         _videoPath = video.path;
-        _videoController = VideoPlayerController.asset(_videoPath!);
+        _videoController = VideoPlayerController.file(File(_videoPath!));
         await _videoController!.initialize();
 
         _videoDuration = _videoController!.value.duration.inMilliseconds;

@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
@@ -265,7 +267,19 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     setState(() => _isVideoLoading = true);
 
     try {
-      _videoController = VideoPlayerController.asset(move.videoUri);
+      switch (move.videoSourceType) {
+        case VideoSourceType.localGallery:
+          _videoController = VideoPlayerController.file(File(move.videoUri));
+          break;
+        case VideoSourceType.bundledAsset:
+          _videoController = VideoPlayerController.asset(move.videoUri);
+          break;
+        case VideoSourceType.webUrl:
+          _videoController = VideoPlayerController.networkUrl(Uri.parse(move.videoUri));
+          break;
+        case VideoSourceType.none:
+          return;
+      }
       await _videoController!.initialize();
 
       // 设置播放区间

@@ -460,21 +460,23 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
           ),
         ),
         const SizedBox(height: 12),
-        Row(
-          children: MasteryLevel.values.map((level) {
-            return Expanded(
-              child: Padding(
-                padding: EdgeInsets.only(
-                  right: level != MasteryLevel.mastered ? 8 : 0,
+        IntrinsicHeight(
+          child: Row(
+            children: MasteryLevel.values.map((level) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: level != MasteryLevel.mastered ? 8 : 0,
+                  ),
+                  child: _MasteryCard(
+                    level: level,
+                    isSelected: _masteryLevel == level,
+                    onTap: () => setState(() => _masteryLevel = level),
+                  ),
                 ),
-                child: _MasteryCard(
-                  level: level,
-                  isSelected: _masteryLevel == level,
-                  onTap: () => setState(() => _masteryLevel = level),
-                ),
-              ),
-            );
-          }).toList(),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
@@ -684,11 +686,11 @@ class _MasteryCard extends StatelessWidget {
   String get _description {
     switch (level) {
       case MasteryLevel.new_:
-        return '初始熟练度: 0';
+        return '熟练度: 0';
       case MasteryLevel.learning:
-        return '初始熟练度: 30';
+        return '熟练度: 30';
       case MasteryLevel.mastered:
-        return '初始熟练度: 70';
+        return '熟练度: 70';
     }
   }
 
@@ -718,9 +720,11 @@ class _MasteryCard extends StatelessWidget {
           ),
         ),
         child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
             Text(
               _label,
+              textAlign: TextAlign.center,
               style: AppTextStyles.body.copyWith(
                 color: isSelected ? _color : AppColors.textPrimary,
                 fontWeight: FontWeight.w600,
@@ -729,6 +733,8 @@ class _MasteryCard extends StatelessWidget {
             const SizedBox(height: 4),
             Text(
               _description,
+              textAlign: TextAlign.center,
+              maxLines: 1,
               style: AppTextStyles.bodySmall.copyWith(
                 color: AppColors.textHint,
                 fontSize: 11,

@@ -102,7 +102,8 @@ class DrillNotifier extends StateNotifier<DrillState> {
     final defaultBpm = _audioEngine.currentDrumLoop?.bpm ?? AppConstants.defaultBpm;
     await _audioEngine.setBpm(defaultBpm);
 
-    _isPlaying = true; // 更新实例变量
+    // 1. 立即更新状态，让 UI 马上响应
+    _isPlaying = true;
     state = DrillState(
       queue: shuffled,
       currentIndex: 0,
@@ -112,10 +113,11 @@ class DrillNotifier extends StateNotifier<DrillState> {
       availableLoops: _audioEngine.availableLoops,
     );
 
-    await _audioEngine.playBgm();
-
-    // 开始动作循环
+    // 2. 立即启动 Timer（同步操作，几乎无延迟）
     _startMoveCycle();
+
+    // 3. 异步播放音频（不阻塞 UI）
+    await _audioEngine.playBgm();
   }
 
   /// 准备训练（不自动开始，等待用户点击播放）
@@ -282,27 +284,21 @@ class DrillNotifier extends StateNotifier<DrillState> {
       return;
     }
 
-    // 先更新实例变量，确保 Timer 回调可以立即使用
+    // 1. 立即更新状态，让 UI 马上响应
     _isPlaying = true;
-
-    // 再更新状态，确保 UI 立即响应
     state = state.copyWith(isPlaying: true);
 
+    // 2. 立即启动 Timer（同步操作，几乎无延迟）
+    _startMoveCycle();
+
+    // 3. 异步播放音频（不阻塞 UI）
     try {
-      // 确保音频引擎已初始化
       await _audioEngine.initialize();
       await _audioEngine.setBpm(state.bpm);
-
-      // 播放背景音乐
       await _audioEngine.playBgm();
     } catch (e) {
       debugPrint('Drill resume error: $e');
     }
-
-    debugPrint('Starting move cycle...');
-    // 启动动作循环
-    _startMoveCycle();
-    debugPrint('Move cycle started');
   }
 
   /// 停止训练

@@ -253,7 +253,13 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
   /// 加载视频
   Future<void> _loadVideo(DanceMove move) async {
-    if (_videoController != null || !mounted) return;
+    // 先释放旧的视频控制器，避免显示上一个动作的视频
+    if (_videoController != null) {
+      await _videoController!.dispose();
+      _videoController = null;
+    }
+
+    if (!mounted) return;
 
     // 如果没有视频源，直接返回
     if (move.videoSourceType == VideoSourceType.none) {

@@ -1,92 +1,92 @@
 import 'package:sqflite/sqflite.dart';
 import 'database_helper.dart';
-import '../../models/dance_move.dart';
+import '../../models/dance_element.dart';
 
-/// 动作数据访问对象
-class DanceMoveDao {
+/// 元素数据访问对象
+class DanceElementDao {
   final DatabaseHelper _dbHelper = DatabaseHelper();
 
-  /// 插入动作
-  Future<void> insert(DanceMove move) async {
+  /// 插入元素
+  Future<void> insert(DanceElement element) async {
     final db = await _dbHelper.database;
     await db.insert(
-      DatabaseHelper.tableDanceMoves,
-      move.toJson(),
+      DatabaseHelper.tableDanceElements,
+      element.toJson(),
       conflictAlgorithm: ConflictAlgorithm.replace,
     );
   }
 
-  /// 批量插入动作
-  Future<void> insertAll(List<DanceMove> moves) async {
+  /// 批量插入元素
+  Future<void> insertAll(List<DanceElement> elements) async {
     final db = await _dbHelper.database;
     final batch = db.batch();
-    for (final move in moves) {
+    for (final element in elements) {
       batch.insert(
-        DatabaseHelper.tableDanceMoves,
-        move.toJson(),
+        DatabaseHelper.tableDanceElements,
+        element.toJson(),
         conflictAlgorithm: ConflictAlgorithm.replace,
       );
     }
     await batch.commit(noResult: true);
   }
 
-  /// 根据 ID 获取动作
-  Future<DanceMove?> getById(String id) async {
+  /// 根据 ID 获取元素
+  Future<DanceElement?> getById(String id) async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
-      DatabaseHelper.tableDanceMoves,
+      DatabaseHelper.tableDanceElements,
       where: 'id = ?',
       whereArgs: [id],
     );
     if (maps.isEmpty) return null;
-    return DanceMove.fromJson(maps.first);
+    return DanceElement.fromJson(maps.first);
   }
 
-  /// 获取所有动作
-  Future<List<DanceMove>> getAll() async {
+  /// 获取所有元素
+  Future<List<DanceElement>> getAll() async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
-      DatabaseHelper.tableDanceMoves,
+      DatabaseHelper.tableDanceElements,
       orderBy: 'created_at DESC',
     );
-    return maps.map((json) => DanceMove.fromJson(json)).toList();
+    return maps.map((json) => DanceElement.fromJson(json)).toList();
   }
 
-  /// 获取所有动作（按优先级排序）
+  /// 获取所有元素（按优先级排序）
   /// 优先级 = 遗忘因子 × 熟练度权重
   /// 遗忘因子 = 1 / (1 + log(距上次练习天数 + 1))
   /// 熟练度权重 = 1 - (mastery_level / 100)
-  Future<List<DanceMove>> getAllOrderedByPriority() async {
+  Future<List<DanceElement>> getAllOrderedByPriority() async {
     final db = await _dbHelper.database;
     final now = DateTime.now().millisecondsSinceEpoch;
     final dayInMillis = 24 * 60 * 60 * 1000;
 
-    // 获取所有动作
+    // 获取所有元素
     final List<Map<String, dynamic>> maps = await db.query(
-      DatabaseHelper.tableDanceMoves,
+      DatabaseHelper.tableDanceElements,
     );
 
-    final moves = maps.map((json) => DanceMove.fromJson(json)).toList();
+    final elements = maps.map((json) => DanceElement.fromJson(json)).toList();
 
     // 计算优先级并排序
-    moves.sort((a, b) {
+    elements.sort((a, b) {
       final priorityA = _calculatePriority(a, now, dayInMillis);
       final priorityB = _calculatePriority(b, now, dayInMillis);
       return priorityB.compareTo(priorityA); // 降序
     });
 
-    return moves;
+    return elements;
   }
 
-  /// 计算动作优先级
-  double _calculatePriority(DanceMove move, int now, int dayInMillis) {
-    final daysSincePractice = (now - move.lastPracticedAt) / dayInMillis;
+  /// 计算元素优先级
+  double _calculatePriority(DanceElement element, int now, int dayInMillis) {
+    final daysSincePractice = (now - element.lastPracticedAt) / dayInMillis;
 
     // 遗忘因子：越久未练，因子越大
     final forgettingFactor = 1 / (1 + _log(daysSincePractice + 1));
 
     // 熟练度权重：熟练度越低，权重越大
-    final masteryWeight = 1 - (move.masteryLevel / 100);
+    final masteryWeight = 1 - (element.masteryLevel / 100);
 
     return forgettingFactor * masteryWeight;
   }
@@ -97,60 +97,60 @@ class DanceMoveDao {
     return x.isFinite ? (x > 1 ? x.toString().length - 1.0 : 0) : 0;
   }
 
-  /// 选取指定数量的动作用于训练（按优先级）
-  Future<List<DanceMove>> getMovesForTraining({int count = 10}) async {
-    final orderedMoves = await getAllOrderedByPriority();
-    return orderedMoves.take(count).toList();
+  /// 选取指定数量的元素用于训练（按优先级）
+  Future<List<DanceElement>> getElementsForTraining({int count = 10}) async {
+    final orderedElements = await getAllOrderedByPriority();
+    return orderedElements.take(count).toList();
   }
 
-  /// 按分类获取动作
-  Future<List<DanceMove>> getByCategory(String category) async {
+  /// 按分类获取元素
+  Future<List<DanceElement>> getByCategory(String category) async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
-      DatabaseHelper.tableDanceMoves,
+      DatabaseHelper.tableDanceElements,
       where: 'category = ?',
       whereArgs: [category],
       orderBy: 'name ASC',
     );
-    return maps.map((json) => DanceMove.fromJson(json)).toList();
+    return maps.map((json) => DanceElement.fromJson(json)).toList();
   }
 
   /// 获取所有分类
   Future<List<String>> getAllCategories() async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.rawQuery('''
-      SELECT DISTINCT category FROM ${DatabaseHelper.tableDanceMoves}
+      SELECT DISTINCT category FROM ${DatabaseHelper.tableDanceElements}
       ORDER BY category ASC
     ''');
     return maps.map((map) => map['category'] as String).toList();
   }
 
-  /// 更新动作
-  Future<void> update(DanceMove move) async {
+  /// 更新元素
+  Future<void> update(DanceElement element) async {
     final db = await _dbHelper.database;
     await db.update(
-      DatabaseHelper.tableDanceMoves,
-      move.toJson(),
+      DatabaseHelper.tableDanceElements,
+      element.toJson(),
       where: 'id = ?',
-      whereArgs: [move.id],
+      whereArgs: [element.id],
     );
   }
 
-  /// 删除动作
+  /// 删除元素
   Future<void> delete(String id) async {
     final db = await _dbHelper.database;
     await db.delete(
-      DatabaseHelper.tableDanceMoves,
+      DatabaseHelper.tableDanceElements,
       where: 'id = ?',
       whereArgs: [id],
     );
   }
 
-  /// 获取动作总数
+  /// 获取元素总数
   Future<int> getCount() async {
     final db = await _dbHelper.database;
     final result = await db.rawQuery(
-      'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableDanceMoves}',
+      'SELECT COUNT(*) as count FROM ${DatabaseHelper.tableDanceElements}',
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }

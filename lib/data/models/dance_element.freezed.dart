@@ -3,7 +3,7 @@
 // ignore_for_file: type=lint
 // ignore_for_file: unused_element, deprecated_member_use, deprecated_member_use_from_same_package, use_function_type_syntax_for_parameters, unnecessary_const, avoid_init_to_null, invalid_override_different_default_values_named, prefer_expression_function_bodies, annotate_overrides, invalid_annotation_target, unnecessary_question_mark
 
-part of 'dance_move.dart';
+part of 'dance_element.dart';
 
 // **************************************************************************
 // FreezedGenerator
@@ -15,12 +15,12 @@ final _privateConstructorUsedError = UnsupportedError(
   'It seems like you constructed your class using `MyClass._()`. This constructor is only meant to be used by freezed and you are not supposed to need it nor use it.\nPlease check the documentation here for more information: https://github.com/rrousselGit/freezed#adding-getters-and-methods-to-our-models',
 );
 
-DanceMove _$DanceMoveFromJson(Map<String, dynamic> json) {
-  return _DanceMove.fromJson(json);
+DanceElement _$DanceElementFromJson(Map<String, dynamic> json) {
+  return _DanceElement.fromJson(json);
 }
 
 /// @nodoc
-mixin _$DanceMove {
+mixin _$DanceElement {
   String get id => throw _privateConstructorUsedError;
   String get name => throw _privateConstructorUsedError;
   String get category => throw _privateConstructorUsedError; // 视频源数据
@@ -33,7 +33,7 @@ mixin _$DanceMove {
   @JsonKey(name: 'trim_end')
   int get trimEnd => throw _privateConstructorUsedError; // 毫秒
   // 训练数据
-  MoveStatus get status => throw _privateConstructorUsedError;
+  ElementStatus get status => throw _privateConstructorUsedError;
   @JsonKey(name: 'mastery_level')
   int get masteryLevel => throw _privateConstructorUsedError; // 0-100 熟练度
   @JsonKey(name: 'last_practiced_at')
@@ -44,20 +44,22 @@ mixin _$DanceMove {
   @JsonKey(name: 'updated_at')
   int? get updatedAt => throw _privateConstructorUsedError;
 
-  /// Serializes this DanceMove to a JSON map.
+  /// Serializes this DanceElement to a JSON map.
   Map<String, dynamic> toJson() => throw _privateConstructorUsedError;
 
-  /// Create a copy of DanceMove
+  /// Create a copy of DanceElement
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
-  $DanceMoveCopyWith<DanceMove> get copyWith =>
+  $DanceElementCopyWith<DanceElement> get copyWith =>
       throw _privateConstructorUsedError;
 }
 
 /// @nodoc
-abstract class $DanceMoveCopyWith<$Res> {
-  factory $DanceMoveCopyWith(DanceMove value, $Res Function(DanceMove) then) =
-      _$DanceMoveCopyWithImpl<$Res, DanceMove>;
+abstract class $DanceElementCopyWith<$Res> {
+  factory $DanceElementCopyWith(
+    DanceElement value,
+    $Res Function(DanceElement) then,
+  ) = _$DanceElementCopyWithImpl<$Res, DanceElement>;
   @useResult
   $Res call({
     String id,
@@ -67,7 +69,7 @@ abstract class $DanceMoveCopyWith<$Res> {
     @JsonKey(name: 'video_uri') String videoUri,
     @JsonKey(name: 'trim_start') int trimStart,
     @JsonKey(name: 'trim_end') int trimEnd,
-    MoveStatus status,
+    ElementStatus status,
     @JsonKey(name: 'mastery_level') int masteryLevel,
     @JsonKey(name: 'last_practiced_at') int lastPracticedAt,
     @JsonKey(name: 'created_at') int createdAt,
@@ -76,16 +78,16 @@ abstract class $DanceMoveCopyWith<$Res> {
 }
 
 /// @nodoc
-class _$DanceMoveCopyWithImpl<$Res, $Val extends DanceMove>
-    implements $DanceMoveCopyWith<$Res> {
-  _$DanceMoveCopyWithImpl(this._value, this._then);
+class _$DanceElementCopyWithImpl<$Res, $Val extends DanceElement>
+    implements $DanceElementCopyWith<$Res> {
+  _$DanceElementCopyWithImpl(this._value, this._then);
 
   // ignore: unused_field
   final $Val _value;
   // ignore: unused_field
   final $Res Function($Val) _then;
 
-  /// Create a copy of DanceMove
+  /// Create a copy of DanceElement
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -136,7 +138,7 @@ class _$DanceMoveCopyWithImpl<$Res, $Val extends DanceMove>
             status: null == status
                 ? _value.status
                 : status // ignore: cast_nullable_to_non_nullable
-                      as MoveStatus,
+                      as ElementStatus,
             masteryLevel: null == masteryLevel
                 ? _value.masteryLevel
                 : masteryLevel // ignore: cast_nullable_to_non_nullable
@@ -160,12 +162,12 @@ class _$DanceMoveCopyWithImpl<$Res, $Val extends DanceMove>
 }
 
 /// @nodoc
-abstract class _$$DanceMoveImplCopyWith<$Res>
-    implements $DanceMoveCopyWith<$Res> {
-  factory _$$DanceMoveImplCopyWith(
-    _$DanceMoveImpl value,
-    $Res Function(_$DanceMoveImpl) then,
-  ) = __$$DanceMoveImplCopyWithImpl<$Res>;
+abstract class _$$DanceElementImplCopyWith<$Res>
+    implements $DanceElementCopyWith<$Res> {
+  factory _$$DanceElementImplCopyWith(
+    _$DanceElementImpl value,
+    $Res Function(_$DanceElementImpl) then,
+  ) = __$$DanceElementImplCopyWithImpl<$Res>;
   @override
   @useResult
   $Res call({
@@ -176,7 +178,7 @@ abstract class _$$DanceMoveImplCopyWith<$Res>
     @JsonKey(name: 'video_uri') String videoUri,
     @JsonKey(name: 'trim_start') int trimStart,
     @JsonKey(name: 'trim_end') int trimEnd,
-    MoveStatus status,
+    ElementStatus status,
     @JsonKey(name: 'mastery_level') int masteryLevel,
     @JsonKey(name: 'last_practiced_at') int lastPracticedAt,
     @JsonKey(name: 'created_at') int createdAt,
@@ -185,15 +187,15 @@ abstract class _$$DanceMoveImplCopyWith<$Res>
 }
 
 /// @nodoc
-class __$$DanceMoveImplCopyWithImpl<$Res>
-    extends _$DanceMoveCopyWithImpl<$Res, _$DanceMoveImpl>
-    implements _$$DanceMoveImplCopyWith<$Res> {
-  __$$DanceMoveImplCopyWithImpl(
-    _$DanceMoveImpl _value,
-    $Res Function(_$DanceMoveImpl) _then,
+class __$$DanceElementImplCopyWithImpl<$Res>
+    extends _$DanceElementCopyWithImpl<$Res, _$DanceElementImpl>
+    implements _$$DanceElementImplCopyWith<$Res> {
+  __$$DanceElementImplCopyWithImpl(
+    _$DanceElementImpl _value,
+    $Res Function(_$DanceElementImpl) _then,
   ) : super(_value, _then);
 
-  /// Create a copy of DanceMove
+  /// Create a copy of DanceElement
   /// with the given fields replaced by the non-null parameter values.
   @pragma('vm:prefer-inline')
   @override
@@ -212,7 +214,7 @@ class __$$DanceMoveImplCopyWithImpl<$Res>
     Object? updatedAt = freezed,
   }) {
     return _then(
-      _$DanceMoveImpl(
+      _$DanceElementImpl(
         id: null == id
             ? _value.id
             : id // ignore: cast_nullable_to_non_nullable
@@ -244,7 +246,7 @@ class __$$DanceMoveImplCopyWithImpl<$Res>
         status: null == status
             ? _value.status
             : status // ignore: cast_nullable_to_non_nullable
-                  as MoveStatus,
+                  as ElementStatus,
         masteryLevel: null == masteryLevel
             ? _value.masteryLevel
             : masteryLevel // ignore: cast_nullable_to_non_nullable
@@ -268,8 +270,8 @@ class __$$DanceMoveImplCopyWithImpl<$Res>
 
 /// @nodoc
 @JsonSerializable()
-class _$DanceMoveImpl implements _DanceMove {
-  const _$DanceMoveImpl({
+class _$DanceElementImpl implements _DanceElement {
+  const _$DanceElementImpl({
     required this.id,
     required this.name,
     required this.category,
@@ -277,15 +279,15 @@ class _$DanceMoveImpl implements _DanceMove {
     @JsonKey(name: 'video_uri') required this.videoUri,
     @JsonKey(name: 'trim_start') this.trimStart = 0,
     @JsonKey(name: 'trim_end') this.trimEnd = 0,
-    this.status = MoveStatus.new_,
+    this.status = ElementStatus.new_,
     @JsonKey(name: 'mastery_level') this.masteryLevel = 0,
     @JsonKey(name: 'last_practiced_at') this.lastPracticedAt = 0,
     @JsonKey(name: 'created_at') this.createdAt = 0,
     @JsonKey(name: 'updated_at') this.updatedAt,
   });
 
-  factory _$DanceMoveImpl.fromJson(Map<String, dynamic> json) =>
-      _$$DanceMoveImplFromJson(json);
+  factory _$DanceElementImpl.fromJson(Map<String, dynamic> json) =>
+      _$$DanceElementImplFromJson(json);
 
   @override
   final String id;
@@ -311,7 +313,7 @@ class _$DanceMoveImpl implements _DanceMove {
   // 训练数据
   @override
   @JsonKey()
-  final MoveStatus status;
+  final ElementStatus status;
   @override
   @JsonKey(name: 'mastery_level')
   final int masteryLevel;
@@ -331,14 +333,14 @@ class _$DanceMoveImpl implements _DanceMove {
 
   @override
   String toString() {
-    return 'DanceMove(id: $id, name: $name, category: $category, videoSourceType: $videoSourceType, videoUri: $videoUri, trimStart: $trimStart, trimEnd: $trimEnd, status: $status, masteryLevel: $masteryLevel, lastPracticedAt: $lastPracticedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
+    return 'DanceElement(id: $id, name: $name, category: $category, videoSourceType: $videoSourceType, videoUri: $videoUri, trimStart: $trimStart, trimEnd: $trimEnd, status: $status, masteryLevel: $masteryLevel, lastPracticedAt: $lastPracticedAt, createdAt: $createdAt, updatedAt: $updatedAt)';
   }
 
   @override
   bool operator ==(Object other) {
     return identical(this, other) ||
         (other.runtimeType == runtimeType &&
-            other is _$DanceMoveImpl &&
+            other is _$DanceElementImpl &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.name, name) || other.name == name) &&
             (identical(other.category, category) ||
@@ -379,22 +381,22 @@ class _$DanceMoveImpl implements _DanceMove {
     updatedAt,
   );
 
-  /// Create a copy of DanceMove
+  /// Create a copy of DanceElement
   /// with the given fields replaced by the non-null parameter values.
   @JsonKey(includeFromJson: false, includeToJson: false)
   @override
   @pragma('vm:prefer-inline')
-  _$$DanceMoveImplCopyWith<_$DanceMoveImpl> get copyWith =>
-      __$$DanceMoveImplCopyWithImpl<_$DanceMoveImpl>(this, _$identity);
+  _$$DanceElementImplCopyWith<_$DanceElementImpl> get copyWith =>
+      __$$DanceElementImplCopyWithImpl<_$DanceElementImpl>(this, _$identity);
 
   @override
   Map<String, dynamic> toJson() {
-    return _$$DanceMoveImplToJson(this);
+    return _$$DanceElementImplToJson(this);
   }
 }
 
-abstract class _DanceMove implements DanceMove {
-  const factory _DanceMove({
+abstract class _DanceElement implements DanceElement {
+  const factory _DanceElement({
     required final String id,
     required final String name,
     required final String category,
@@ -403,15 +405,15 @@ abstract class _DanceMove implements DanceMove {
     @JsonKey(name: 'video_uri') required final String videoUri,
     @JsonKey(name: 'trim_start') final int trimStart,
     @JsonKey(name: 'trim_end') final int trimEnd,
-    final MoveStatus status,
+    final ElementStatus status,
     @JsonKey(name: 'mastery_level') final int masteryLevel,
     @JsonKey(name: 'last_practiced_at') final int lastPracticedAt,
     @JsonKey(name: 'created_at') final int createdAt,
     @JsonKey(name: 'updated_at') final int? updatedAt,
-  }) = _$DanceMoveImpl;
+  }) = _$DanceElementImpl;
 
-  factory _DanceMove.fromJson(Map<String, dynamic> json) =
-      _$DanceMoveImpl.fromJson;
+  factory _DanceElement.fromJson(Map<String, dynamic> json) =
+      _$DanceElementImpl.fromJson;
 
   @override
   String get id;
@@ -433,7 +435,7 @@ abstract class _DanceMove implements DanceMove {
   int get trimEnd; // 毫秒
   // 训练数据
   @override
-  MoveStatus get status;
+  ElementStatus get status;
   @override
   @JsonKey(name: 'mastery_level')
   int get masteryLevel; // 0-100 熟练度
@@ -448,10 +450,10 @@ abstract class _DanceMove implements DanceMove {
   @JsonKey(name: 'updated_at')
   int? get updatedAt;
 
-  /// Create a copy of DanceMove
+  /// Create a copy of DanceElement
   /// with the given fields replaced by the non-null parameter values.
   @override
   @JsonKey(includeFromJson: false, includeToJson: false)
-  _$$DanceMoveImplCopyWith<_$DanceMoveImpl> get copyWith =>
+  _$$DanceElementImplCopyWith<_$DanceElementImpl> get copyWith =>
       throw _privateConstructorUsedError;
 }

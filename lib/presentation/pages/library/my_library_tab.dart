@@ -3,10 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../data/models/dance_move.dart';
-import '../../providers/dance_moves_provider.dart';
+import '../../../data/models/dance_element.dart';
+import '../../providers/user_elements_provider.dart';
 
-/// 我的动作库 Tab
+/// 我的元素库 Tab
 class MyLibraryTab extends ConsumerStatefulWidget {
   const MyLibraryTab({super.key});
 
@@ -19,7 +19,7 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final allMovesAsync = ref.watch(allMovesProvider);
+    final allElementsAsync = ref.watch(allElementsProvider);
     final categoriesAsync = ref.watch(categoriesProvider);
 
     return Column(
@@ -34,10 +34,10 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
           error: (_, __) => const SizedBox.shrink(),
         ),
 
-        // 动作列表
+        // 元素列表
         Expanded(
-          child: allMovesAsync.when(
-            data: (moves) => _buildMoveList(moves),
+          child: allElementsAsync.when(
+            data: (elements) => _buildElementList(elements),
             loading: () => const Center(
               child: CircularProgressIndicator(),
             ),
@@ -77,23 +77,23 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
     );
   }
 
-  /// 动作列表
-  Widget _buildMoveList(List<DanceMove> moves) {
+  /// 元素列表
+  Widget _buildElementList(List<DanceElement> elements) {
     // 筛选
-    final filteredMoves = _selectedCategory != null
-        ? moves.where((m) => m.category == _selectedCategory).toList()
-        : moves;
+    final filteredElements = _selectedCategory != null
+        ? elements.where((e) => e.category == _selectedCategory).toList()
+        : elements;
 
-    if (filteredMoves.isEmpty) {
+    if (filteredElements.isEmpty) {
       return _buildEmptyState();
     }
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
-      itemCount: filteredMoves.length,
+      itemCount: filteredElements.length,
       itemBuilder: (context, index) {
-        final move = filteredMoves[index];
-        return _MoveCard(move: move);
+        final element = filteredElements[index];
+        return _ElementCard(element: element);
       },
     );
   }
@@ -111,14 +111,14 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
           ),
           const SizedBox(height: 16),
           Text(
-            '还没有添加动作',
+            '还没有添加元素',
             style: AppTextStyles.body.copyWith(
               color: AppColors.textSecondary,
             ),
           ),
           const SizedBox(height: 8),
           Text(
-            '从官方动作库快速添加，或自定义创建',
+            '从官方元素库快速添加，或自定义创建',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textHint,
             ),
@@ -129,7 +129,7 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
             children: [
               TextButton.icon(
                 onPressed: () {
-                  // 切换到官方动作库 Tab
+                  // 切换到官方元素库 Tab
                   DefaultTabController.of(context).animateTo(1);
                 },
                 icon: const Icon(Icons.explore_outlined),
@@ -190,11 +190,11 @@ class _CategoryChip extends StatelessWidget {
   }
 }
 
-/// 动作卡片
-class _MoveCard extends StatelessWidget {
-  final DanceMove move;
+/// 元素卡片
+class _ElementCard extends StatelessWidget {
+  final DanceElement element;
 
-  const _MoveCard({required this.move});
+  const _ElementCard({required this.element});
 
   @override
   Widget build(BuildContext context) {
@@ -218,13 +218,13 @@ class _MoveCard extends StatelessWidget {
           ),
           const SizedBox(width: 12),
 
-          // 动作信息
+          // 元素信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  move.name,
+                  element.name,
                   style: AppTextStyles.body.copyWith(
                     color: AppColors.textPrimary,
                     fontWeight: FontWeight.w600,
@@ -232,7 +232,7 @@ class _MoveCard extends StatelessWidget {
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  move.category,
+                  element.category,
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.textHint,
                   ),
@@ -251,7 +251,7 @@ class _MoveCard extends StatelessWidget {
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(4),
                   child: LinearProgressIndicator(
-                    value: move.masteryLevel / 100,
+                    value: element.masteryLevel / 100,
                     backgroundColor: AppColors.surfaceLight,
                     valueColor: AlwaysStoppedAnimation<Color>(_getMasteryColor()),
                     minHeight: 6,
@@ -260,7 +260,7 @@ class _MoveCard extends StatelessWidget {
               ),
               const SizedBox(height: 4),
               Text(
-                '熟练度 ${move.masteryLevel}%',
+                '熟练度 ${element.masteryLevel}%',
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textHint,
                   fontSize: 11,
@@ -274,20 +274,20 @@ class _MoveCard extends StatelessWidget {
   }
 
   Color _getStatusColor() {
-    switch (move.status) {
-      case MoveStatus.new_:
+    switch (element.status) {
+      case ElementStatus.new_:
         return AppColors.warning;
-      case MoveStatus.learning:
+      case ElementStatus.learning:
         return AppColors.info;
-      case MoveStatus.reviewing:
+      case ElementStatus.reviewing:
         return AppColors.success;
     }
   }
 
   Color _getMasteryColor() {
-    if (move.masteryLevel < 30) {
+    if (element.masteryLevel < 30) {
       return AppColors.warning;
-    } else if (move.masteryLevel < 70) {
+    } else if (element.masteryLevel < 70) {
       return AppColors.info;
     } else {
       return AppColors.success;

@@ -12,7 +12,7 @@ enum FeedbackType {
 
 /// 初始熟练度等级
 enum MasteryLevel {
-  /// 新动作 - 熟练度 0
+  /// 新元素 - 熟练度 0
   new_,
   /// 学习中 - 熟练度 30
   learning,
@@ -61,7 +61,7 @@ class SrsAlgorithmService {
     }
   }
 
-  /// 计算动作的优先级分数
+  /// 计算元素的优先级分数
   /// 优先级 = 遗忘因子 × 熟练度权重
   double calculatePriority({
     required int masteryLevel,
@@ -81,8 +81,8 @@ class SrsAlgorithmService {
     return forgettingFactor * masteryWeight;
   }
 
-  /// 根据熟练度判断动作状态
-  String getMoveStatus(int masteryLevel) {
+  /// 根据熟练度判断元素状态
+  String getElementStatus(int masteryLevel) {
     if (masteryLevel < 30) {
       return 'new';
     } else if (masteryLevel < 70) {

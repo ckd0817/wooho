@@ -11,13 +11,13 @@ class DatabaseHelper {
   DatabaseHelper._internal();
 
   /// 数据库名称
-  static const String _databaseName = 'danceloop.db';
+  static const String _databaseName = 'wooho.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 2;
+  static const int _databaseVersion = 3;
 
   /// 表名
-  static const String tableDanceMoves = 'dance_moves';
+  static const String tableDanceElements = 'dance_elements';
   static const String tableReviewRecords = 'review_records';
 
   /// 获取数据库实例
@@ -42,9 +42,9 @@ class DatabaseHelper {
 
   /// 创建表
   Future<void> _onCreate(Database db, int version) async {
-    // 创建动作表
+    // 创建元素表
     await db.execute('''
-      CREATE TABLE $tableDanceMoves (
+      CREATE TABLE $tableDanceElements (
         id TEXT PRIMARY KEY,
         name TEXT NOT NULL,
         category TEXT NOT NULL,
@@ -64,24 +64,24 @@ class DatabaseHelper {
     await db.execute('''
       CREATE TABLE $tableReviewRecords (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
-        move_id TEXT NOT NULL,
+        element_id TEXT NOT NULL,
         feedback TEXT NOT NULL,
         reviewed_at INTEGER NOT NULL,
         previous_mastery INTEGER NOT NULL,
         new_mastery INTEGER NOT NULL,
-        FOREIGN KEY (move_id) REFERENCES $tableDanceMoves (id)
+        FOREIGN KEY (element_id) REFERENCES $tableDanceElements (id)
       )
     ''');
 
     // 创建索引
     await db.execute('''
-      CREATE INDEX idx_dance_moves_last_practiced ON $tableDanceMoves (last_practiced_at)
+      CREATE INDEX idx_dance_elements_last_practiced ON $tableDanceElements (last_practiced_at)
     ''');
     await db.execute('''
-      CREATE INDEX idx_dance_moves_mastery ON $tableDanceMoves (mastery_level)
+      CREATE INDEX idx_dance_elements_mastery ON $tableDanceElements (mastery_level)
     ''');
     await db.execute('''
-      CREATE INDEX idx_review_records_move_id ON $tableReviewRecords (move_id)
+      CREATE INDEX idx_review_records_element_id ON $tableReviewRecords (element_id)
     ''');
   }
 
@@ -95,15 +95,15 @@ class DatabaseHelper {
       await db.transaction((txn) async {
         // 备份旧数据到临时表
         await txn.execute('''
-          CREATE TABLE dance_moves_backup AS SELECT * FROM $tableDanceMoves
+          CREATE TABLE dance_elements_backup AS SELECT * FROM dance_elements
         ''');
 
         // 删除旧表
-        await txn.execute('DROP TABLE $tableDanceMoves');
+        await txn.execute('DROP TABLE dance_elements');
 
         // 创建新表
         await txn.execute('''
-          CREATE TABLE $tableDanceMoves (
+          CREATE TABLE dance_elements (
             id TEXT PRIMARY KEY,
             name TEXT NOT NULL,
             category TEXT NOT NULL,
@@ -121,20 +121,20 @@ class DatabaseHelper {
 
         // 迁移数据（使用 created_at 作为 last_practiced_at 的默认值）
         await txn.execute('''
-          INSERT INTO $tableDanceMoves (id, name, category, video_source_type, video_uri, trim_start, trim_end, status, mastery_level, last_practiced_at, created_at, updated_at)
+          INSERT INTO dance_elements (id, name, category, video_source_type, video_uri, trim_start, trim_end, status, mastery_level, last_practiced_at, created_at, updated_at)
           SELECT id, name, category, video_source_type, video_uri, trim_start, trim_end, status, mastery_level, created_at, created_at, updated_at
-          FROM dance_moves_backup
+          FROM dance_elements_backup
         ''');
 
         // 删除备份表
-        await txn.execute('DROP TABLE dance_moves_backup');
+        await txn.execute('DROP TABLE dance_elements_backup');
 
         // 创建新索引
         await txn.execute('''
-          CREATE INDEX idx_dance_moves_last_practiced ON $tableDanceMoves (last_practiced_at)
+          CREATE INDEX idx_dance_elements_last_practiced ON dance_elements (last_practiced_at)
         ''');
         await txn.execute('''
-          CREATE INDEX idx_dance_moves_mastery ON $tableDanceMoves (mastery_level)
+          CREATE INDEX idx_dance_elements_mastery ON dance_elements (mastery_level)
         ''');
       });
 
@@ -145,6 +145,55 @@ class DatabaseHelper {
       } catch (e) {
         // 列可能已存在，忽略错误
       }
+    }
+
+    if (oldVersion < 3) {
+      // v2 → v3: 重命名表和字段
+      // dance_moves → dance_elements
+      // move_id → element_id
+      await db.transaction((txn) async {
+        // 1. 重命名 dance_moves 表为 dance_elements
+        await txn.execute('''
+          ALTER TABLE dance_moves RENAME TO dance_elements
+        ''');
+
+        // 2. 重命名 review_records 表中的 move_id 字段
+        // SQLite 不支持直接重命名列，需要重建表
+        await txn.execute('''
+          CREATE TABLE review_records_new (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            element_id TEXT NOT NULL,
+            feedback TEXT NOT NULL,
+            reviewed_at INTEGER NOT NULL,
+            previous_mastery INTEGER NOT NULL,
+            new_mastery INTEGER NOT NULL
+          )
+        ''');
+
+        await txn.execute('''
+          INSERT INTO review_records_new (id, element_id, feedback, reviewed_at, previous_mastery, new_mastery)
+          SELECT id, move_id, feedback, reviewed_at, previous_mastery, new_mastery
+          FROM review_records
+        ''');
+
+        await txn.execute('DROP TABLE review_records');
+        await txn.execute('ALTER TABLE review_records_new RENAME TO review_records');
+
+        // 3. 重建索引
+        await txn.execute('DROP INDEX IF EXISTS idx_dance_moves_last_practiced');
+        await txn.execute('DROP INDEX IF EXISTS idx_dance_moves_mastery');
+        await txn.execute('DROP INDEX IF EXISTS idx_review_records_move_id');
+
+        await txn.execute('''
+          CREATE INDEX idx_dance_elements_last_practiced ON dance_elements (last_practiced_at)
+        ''');
+        await txn.execute('''
+          CREATE INDEX idx_dance_elements_mastery ON dance_elements (mastery_level)
+        ''');
+        await txn.execute('''
+          CREATE INDEX idx_review_records_element_id ON review_records (element_id)
+        ''');
+      });
     }
   }
 

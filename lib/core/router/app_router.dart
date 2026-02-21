@@ -11,9 +11,10 @@ import '../../presentation/pages/settings/settings_page.dart';
 class Routes {
   Routes._();
 
+  static const String onboarding = '/onboarding';
   static const String home = '/';
   static const String library = '/library';
-  static const String addMove = '/library/add';
+  static const String addElement = '/library/add';
   static const String review = '/review';
   static const String drill = '/drill';
   static const String settings = '/settings';
@@ -23,43 +24,46 @@ class Routes {
 class AppRouter {
   AppRouter._();
 
+  /// 主要路由列表（不包含 onboarding）
+  static final List<RouteBase> routes = [
+    GoRoute(
+      path: Routes.home,
+      name: 'home',
+      builder: (context, state) => const HomePage(),
+    ),
+    GoRoute(
+      path: Routes.library,
+      name: 'library',
+      builder: (context, state) => const LibraryPage(),
+    ),
+    GoRoute(
+      path: Routes.addElement,
+      name: 'addElement',
+      builder: (context, state) => const AddMovePage(),
+    ),
+    GoRoute(
+      path: Routes.review,
+      name: 'review',
+      builder: (context, state) => const ReviewPage(),
+    ),
+    GoRoute(
+      path: Routes.drill,
+      name: 'drill',
+      builder: (context, state) {
+        // 获取传递的元素列表
+        final elementIds = state.extra as List<String>?;
+        return DrillPage(elementIds: elementIds ?? []);
+      },
+    ),
+    GoRoute(
+      path: Routes.settings,
+      name: 'settings',
+      builder: (context, state) => const SettingsPage(),
+    ),
+  ];
+
   static final GoRouter router = GoRouter(
-    routes: [
-      GoRoute(
-        path: Routes.home,
-        name: 'home',
-        builder: (context, state) => const HomePage(),
-      ),
-      GoRoute(
-        path: Routes.library,
-        name: 'library',
-        builder: (context, state) => const LibraryPage(),
-      ),
-      GoRoute(
-        path: Routes.addMove,
-        name: 'addMove',
-        builder: (context, state) => const AddMovePage(),
-      ),
-      GoRoute(
-        path: Routes.review,
-        name: 'review',
-        builder: (context, state) => const ReviewPage(),
-      ),
-      GoRoute(
-        path: Routes.drill,
-        name: 'drill',
-        builder: (context, state) {
-          // 获取传递的动作列表
-          final moveIds = state.extra as List<String>?;
-          return DrillPage(moveIds: moveIds ?? []);
-        },
-      ),
-      GoRoute(
-        path: Routes.settings,
-        name: 'settings',
-        builder: (context, state) => const SettingsPage(),
-      ),
-    ],
+    routes: routes,
     errorBuilder: (context, state) => Scaffold(
       body: Center(
         child: Text('页面未找到: ${state.error}'),

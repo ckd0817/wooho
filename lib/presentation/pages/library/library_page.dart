@@ -6,7 +6,7 @@ import '../../../core/theme/app_text_styles.dart';
 import 'my_library_tab.dart';
 import 'official_library_tab.dart';
 
-/// 动作库页面（双 Tab 布局）
+/// 元素库页面（双 Tab 布局）
 class LibraryPage extends ConsumerStatefulWidget {
   const LibraryPage({super.key});
 
@@ -34,7 +34,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('动作库'),
+        title: const Text('元素库'),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
@@ -51,8 +51,8 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           ),
           unselectedLabelStyle: AppTextStyles.body,
           tabs: const [
-            Tab(text: '我的动作库'),
-            Tab(text: '官方动作库'),
+            Tab(text: '我的元素库'),
+            Tab(text: '官方元素库'),
           ],
         ),
       ),

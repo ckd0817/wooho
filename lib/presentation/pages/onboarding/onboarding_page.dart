@@ -20,7 +20,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
-    final libraryAsync = ref.watch(danceElementsLibraryProvider);
+    final libraryAsync = ref.watch(presetElementsLibraryProvider);
     final selectedStyles = ref.watch(selectedStylesProvider);
 
     return Scaffold(
@@ -66,7 +66,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     );
   }
 
-  Widget _buildContent(List<DanceCategory> categories, Set<String> selectedStyles) {
+  Widget _buildContent(List<PresetCategory> categories, Set<String> selectedStyles) {
     return Padding(
       padding: const EdgeInsets.all(24),
       child: Column(
@@ -188,7 +188,7 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
   }
 
   Future<void> _showConfirmationDialog(Set<String> selectedStyles) async {
-    final library = await ref.read(danceElementsLibraryProvider.future);
+    final library = await ref.read(presetElementsLibraryProvider.future);
     int totalElements = 0;
 
     for (final categoryId in selectedStyles) {
@@ -200,24 +200,24 @@ class _OnboardingPageState extends ConsumerState<OnboardingPage> {
     final result = await ConfirmationDialog.show(
       context,
       selectedCount: selectedStyles.length,
-      totalMoves: totalElements,
+      totalElements: totalElements,
     );
 
     if (result == true) {
-      await _addMovesAndComplete(selectedStyles);
+      await _addElementsAndComplete(selectedStyles);
     } else if (result == false) {
       // 用户选择不添加，直接完成引导
       await _completeOnboarding();
     }
   }
 
-  Future<void> _addMovesAndComplete(Set<String> selectedStyles) async {
+  Future<void> _addElementsAndComplete(Set<String> selectedStyles) async {
     setState(() => _isProcessing = true);
 
     try {
       await ref
           .read(onboardingNotifierProvider.notifier)
-          .addSelectedMoves(selectedStyles);
+          .addSelectedElements(selectedStyles);
       await _completeOnboarding();
     } finally {
       if (mounted) {

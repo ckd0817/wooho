@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/models/dance_move.dart';
+import '../../data/models/dance_element.dart';
 import '../../data/models/drum_loop.dart';
 import '../../services/audio/audio_engine.dart';
 import '../../core/constants/app_constants.dart';
@@ -18,7 +18,7 @@ final currentBeatProvider = StateProvider<int>((ref) => 0);
 
 /// 串联训练状态
 class DrillState {
-  final List<DanceMove> queue;
+  final List<DanceElement> queue;
   final int currentIndex;
   final bool isPlaying;
   final int bpm;
@@ -34,14 +34,14 @@ class DrillState {
     this.availableLoops = const [],
   });
 
-  /// 当前动作
-  DanceMove? get currentMove =>
+  /// 当前元素
+  DanceElement? get currentElement =>
       queue.isNotEmpty && currentIndex < queue.length
           ? queue[currentIndex]
           : null;
 
-  /// 下一个动作
-  DanceMove? get nextMove {
+  /// 下一个元素
+  DanceElement? get nextElement {
     final nextIndex = currentIndex + 1;
     if (nextIndex < queue.length) {
       return queue[nextIndex];
@@ -50,11 +50,11 @@ class DrillState {
     return queue.isNotEmpty ? queue[0] : null;
   }
 
-  /// 是否有动作
-  bool get hasMoves => queue.isNotEmpty;
+  /// 是否有元素
+  bool get hasElements => queue.isNotEmpty;
 
   DrillState copyWith({
-    List<DanceMove>? queue,
+    List<DanceElement>? queue,
     int? currentIndex,
     bool? isPlaying,
     int? bpm,
@@ -76,7 +76,7 @@ class DrillState {
 class DrillNotifier extends StateNotifier<DrillState> {
   final AudioEngine _audioEngine;
   final Ref _ref;
-  Timer? _moveTimer;
+  Timer? _elementTimer;
   Timer? _announceTimer;
   Timer? _beatTimer;
   int _beatCount = 0;
@@ -85,15 +85,15 @@ class DrillNotifier extends StateNotifier<DrillState> {
   DrillNotifier(this._audioEngine, this._ref) : super(const DrillState());
 
   /// 开始串联训练
-  Future<void> startDrill(List<DanceMove> moves) async {
-    if (moves.isEmpty) return;
+  Future<void> startDrill(List<DanceElement> elements) async {
+    if (elements.isEmpty) return;
 
     // 停止之前的计时器
     _cancelTimers();
     _isPlaying = false; // 重置状态
 
     // 随机打乱队列
-    final shuffled = List<DanceMove>.from(moves)..shuffle();
+    final shuffled = List<DanceElement>.from(elements)..shuffle();
 
     // 初始化音频引擎
     await _audioEngine.initialize();
@@ -114,22 +114,22 @@ class DrillNotifier extends StateNotifier<DrillState> {
     );
 
     // 2. 立即启动 Timer（同步操作，几乎无延迟）
-    _startMoveCycle();
+    _startElementCycle();
 
     // 3. 异步播放音频（不阻塞 UI）
     await _audioEngine.playBgm();
   }
 
   /// 准备训练（不自动开始，等待用户点击播放）
-  Future<void> prepareDrill(List<DanceMove> moves) async {
-    if (moves.isEmpty) return;
+  Future<void> prepareDrill(List<DanceElement> elements) async {
+    if (elements.isEmpty) return;
 
     // 停止之前的计时器
     _cancelTimers();
     _isPlaying = false; // 确保初始状态为暂停
 
     // 随机打乱队列
-    final shuffled = List<DanceMove>.from(moves)..shuffle();
+    final shuffled = List<DanceElement>.from(elements)..shuffle();
 
     // 初始化音频引擎（但不播放）
     await _audioEngine.initialize();
@@ -149,12 +149,12 @@ class DrillNotifier extends StateNotifier<DrillState> {
     );
   }
 
-  /// 开始动作循环
-  void _startMoveCycle() {
-    final moveDurationMs = _audioEngine.getMoveDurationMs();
+  /// 开始元素循环
+  void _startElementCycle() {
+    final elementDurationMs = _audioEngine.getElementDurationMs();
     final announceDurationMs = _audioEngine.getAnnounceDurationMs();
 
-    debugPrint('_startMoveCycle called: moveDuration=$moveDurationMs ms, isPlaying=${state.isPlaying}, _isPlaying=$_isPlaying');
+    debugPrint('_startElementCycle called: elementDuration=$elementDurationMs ms, isPlaying=${state.isPlaying}, _isPlaying=$_isPlaying');
 
     // 如果外部状态显示正在播放但内部状态不是，同步它们
     if (state.isPlaying && !_isPlaying) {
@@ -167,28 +167,28 @@ class DrillNotifier extends StateNotifier<DrillState> {
     // 启动节拍循环
     _startBeatCycle();
 
-    // 在动作结束前 2 拍预告下一个动作
-    final announceDelayMs = moveDurationMs - announceDurationMs;
+    // 在元素结束前 2 拍预告下一个元素
+    final announceDelayMs = elementDurationMs - announceDurationMs;
     _announceTimer = Timer(
       Duration(milliseconds: announceDelayMs),
-      () => _announceNextMove(),
+      () => _announceNextElement(),
     );
 
-    // 动作结束后切换到下一个
-    _moveTimer = Timer(
-      Duration(milliseconds: moveDurationMs),
-      () => _onMoveComplete(),
+    // 元素结束后切换到下一个
+    _elementTimer = Timer(
+      Duration(milliseconds: elementDurationMs),
+      () => _onElementComplete(),
     );
 
-    debugPrint('Timers created: beatTimer=$_beatTimer, moveTimer=$_moveTimer');
+    debugPrint('Timers created: beatTimer=$_beatTimer, elementTimer=$_elementTimer');
   }
 
   /// 开始节拍循环
   void _startBeatCycle() {
-    final moveDurationMs = _audioEngine.getMoveDurationMs();
-    final beatDurationMs = moveDurationMs ~/ 8;
+    final elementDurationMs = _audioEngine.getElementDurationMs();
+    final beatDurationMs = elementDurationMs ~/ 8;
 
-    debugPrint('Beat cycle started: moveDuration=$moveDurationMs ms, beatDuration=$beatDurationMs ms, _isPlaying=$_isPlaying');
+    debugPrint('Beat cycle started: elementDuration=$elementDurationMs ms, beatDuration=$beatDurationMs ms, _isPlaying=$_isPlaying');
 
     _beatTimer?.cancel();
     _beatCount = 0;
@@ -212,16 +212,16 @@ class DrillNotifier extends StateNotifier<DrillState> {
     );
   }
 
-  /// 预告下一个动作 (已移除 TTS)
-  void _announceNextMove() {
+  /// 预告下一个元素 (已移除 TTS)
+  void _announceNextElement() {
     // TTS 功能已移除
   }
 
-  /// 当前动作完成，切换到下一个
-  void _onMoveComplete() {
+  /// 当前元素完成，切换到下一个
+  void _onElementComplete() {
     // 使用实例变量进行检查
     if (!_isPlaying) {
-      debugPrint('_onMoveComplete: not playing, return');
+      debugPrint('_onElementComplete: not playing, return');
       return;
     }
 
@@ -231,22 +231,22 @@ class DrillNotifier extends StateNotifier<DrillState> {
       // 队列结束，重新洗牌并继续
       _reshuffleAndContinue();
     } else {
-      // 切换到下一个动作
+      // 切换到下一个元素
       state = state.copyWith(currentIndex: nextIndex);
-      _startMoveCycle();
+      _startElementCycle();
     }
   }
 
   /// 重新洗牌并继续
   void _reshuffleAndContinue() {
-    final reshuffled = List<DanceMove>.from(state.queue)..shuffle();
+    final reshuffled = List<DanceElement>.from(state.queue)..shuffle();
 
     state = state.copyWith(
       queue: reshuffled,
       currentIndex: 0,
     );
 
-    _startMoveCycle();
+    _startElementCycle();
   }
 
   /// 调整 BPM
@@ -257,7 +257,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
 
     // 重启计时器以应用新的时长（使用实例变量检查）
     if (_isPlaying) {
-      _startMoveCycle();
+      _startElementCycle();
     }
   }
 
@@ -277,10 +277,10 @@ class DrillNotifier extends StateNotifier<DrillState> {
 
   /// 恢复训练（或从准备状态开始）
   Future<void> resumeDrill() async {
-    debugPrint('resumeDrill called, hasMoves=${state.hasMoves}');
+    debugPrint('resumeDrill called, hasElements=${state.hasElements}');
 
-    if (!state.hasMoves) {
-      debugPrint('resumeDrill: no moves, returning');
+    if (!state.hasElements) {
+      debugPrint('resumeDrill: no elements, returning');
       return;
     }
 
@@ -289,7 +289,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
     state = state.copyWith(isPlaying: true);
 
     // 2. 立即启动 Timer（同步操作，几乎无延迟）
-    _startMoveCycle();
+    _startElementCycle();
 
     // 3. 异步播放音频（不阻塞 UI）
     try {
@@ -311,8 +311,8 @@ class DrillNotifier extends StateNotifier<DrillState> {
 
   /// 取消所有计时器
   void _cancelTimers() {
-    _moveTimer?.cancel();
-    _moveTimer = null;
+    _elementTimer?.cancel();
+    _elementTimer = null;
     _announceTimer?.cancel();
     _announceTimer = null;
     _beatTimer?.cancel();

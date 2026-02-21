@@ -6,7 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../data/models/dance_move.dart';
+import '../../../data/models/dance_element.dart';
 import '../../../domain/services/srs_algorithm_service.dart';
 import '../../providers/review_provider.dart';
 
@@ -27,7 +27,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   void initState() {
     super.initState();
     Future.microtask(() {
-      ref.read(reviewProvider.notifier).loadTrainingMoves();
+      ref.read(reviewProvider.notifier).loadTrainingElements();
     });
   }
 
@@ -68,9 +68,9 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     WidgetRef ref,
     ReviewState state,
   ) {
-    // 只有当已完成至少一个动作时，才算真正完成练习
+    // 只有当已完成至少一个元素时，才算真正完成练习
     if (state.isComplete && state.completedCount > 0) {
-      // 动作练习完成，直接进入串联训练
+      // 元素练习完成，直接进入串联训练
       WidgetsBinding.instance.addPostFrameCallback((_) {
         _startDrill(context, ref);
       });
@@ -78,9 +78,9 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
       return const Center(child: CircularProgressIndicator());
     }
 
-    final currentMove = state.currentMove;
-    if (currentMove == null) {
-      // 没有可练习的动作
+    final currentElement = state.currentElement;
+    if (currentElement == null) {
+      // 没有可练习的元素
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -92,7 +92,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              '暂无可练习的动作',
+              '暂无可练习的元素',
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textHint,
               ),
@@ -108,7 +108,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     }
 
     // 加载视频
-    _loadVideo(currentMove);
+    _loadVideo(currentElement);
 
     return Column(
       children: [
@@ -121,16 +121,16 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
         // 视频区域
         Expanded(
-          child: _buildVideoPlayer(currentMove),
+          child: _buildVideoPlayer(currentElement),
         ),
 
-        // 动作名称和分类
+        // 元素名称和分类
         Container(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Text(
-                currentMove.name,
+                currentElement.name,
                 style: AppTextStyles.heading2.copyWith(
                   color: AppColors.textPrimary,
                 ),
@@ -138,7 +138,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                currentMove.category,
+                currentElement.category,
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textHint,
                 ),
@@ -156,7 +156,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   }
 
   /// 视频播放器
-  Widget _buildVideoPlayer(DanceMove move) {
+  Widget _buildVideoPlayer(DanceElement element) {
     if (_isVideoLoading) {
       return const Center(child: CircularProgressIndicator());
     }
@@ -174,7 +174,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              '此动作暂无视频',
+              '此元素暂无视频',
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textHint,
               ),
@@ -252,8 +252,8 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   }
 
   /// 加载视频
-  Future<void> _loadVideo(DanceMove move) async {
-    // 先释放旧的视频控制器，避免显示上一个动作的视频
+  Future<void> _loadVideo(DanceElement element) async {
+    // 先释放旧的视频控制器，避免显示上一个元素的视频
     if (_videoController != null) {
       await _videoController!.dispose();
       _videoController = null;
@@ -262,7 +262,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     if (!mounted) return;
 
     // 如果没有视频源，直接返回
-    if (move.videoSourceType == VideoSourceType.none) {
+    if (element.videoSourceType == VideoSourceType.none) {
       setState(() {
         _hasNoVideo = true;
         _isVideoLoading = false;
@@ -273,15 +273,15 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     setState(() => _isVideoLoading = true);
 
     try {
-      switch (move.videoSourceType) {
+      switch (element.videoSourceType) {
         case VideoSourceType.localGallery:
-          _videoController = VideoPlayerController.file(File(move.videoUri));
+          _videoController = VideoPlayerController.file(File(element.videoUri));
           break;
         case VideoSourceType.bundledAsset:
-          _videoController = VideoPlayerController.asset(move.videoUri);
+          _videoController = VideoPlayerController.asset(element.videoUri);
           break;
         case VideoSourceType.webUrl:
-          _videoController = VideoPlayerController.networkUrl(Uri.parse(move.videoUri));
+          _videoController = VideoPlayerController.networkUrl(Uri.parse(element.videoUri));
           break;
         case VideoSourceType.none:
           return;
@@ -290,14 +290,14 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
       // 设置播放区间
       _videoController!.addListener(() {
-        if (_videoController!.value.position.inMilliseconds >= move.trimEnd) {
-          _videoController!.seekTo(Duration(milliseconds: move.trimStart));
+        if (_videoController!.value.position.inMilliseconds >= element.trimEnd) {
+          _videoController!.seekTo(Duration(milliseconds: element.trimStart));
         }
       });
 
       // 循环播放
       _videoController!.setLooping(true);
-      await _videoController!.seekTo(Duration(milliseconds: move.trimStart));
+      await _videoController!.seekTo(Duration(milliseconds: element.trimStart));
       await _videoController!.play();
 
       if (mounted) {
@@ -338,10 +338,10 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
   /// 开始串联训练
   void _startDrill(BuildContext context, WidgetRef ref) {
-    final completedMoves =
-        ref.read(reviewProvider.notifier).getCompletedMoves();
-    final moveIds = completedMoves.map((m) => m.id).toList();
-    context.push('/drill', extra: moveIds);
+    final completedElements =
+        ref.read(reviewProvider.notifier).getCompletedElements();
+    final elementIds = completedElements.map((e) => e.id).toList();
+    context.push('/drill', extra: elementIds);
   }
 
   /// 确认退出

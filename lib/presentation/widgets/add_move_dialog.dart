@@ -50,12 +50,12 @@ class _AddMoveDialogState extends State<AddMoveDialog> {
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
       ),
-      title: const Text('添加到我的动作库'),
+      title: const Text('添加到我的元素库'),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // 动作信息
+          // 元素信息
           Container(
             padding: const EdgeInsets.all(12),
             decoration: BoxDecoration(

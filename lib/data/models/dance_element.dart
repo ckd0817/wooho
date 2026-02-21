@@ -1,12 +1,12 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
 
-part 'dance_move.freezed.dart';
-part 'dance_move.g.dart';
+part 'dance_element.freezed.dart';
+part 'dance_element.g.dart';
 
-/// 动作实体
+/// 元素实体
 @freezed
-class DanceMove with _$DanceMove {
-  const factory DanceMove({
+class DanceElement with _$DanceElement {
+  const factory DanceElement({
     required String id,
     required String name,
     required String category,
@@ -18,17 +18,17 @@ class DanceMove with _$DanceMove {
     @Default(0) @JsonKey(name: 'trim_end') int trimEnd, // 毫秒
 
     // 训练数据
-    @Default(MoveStatus.new_) MoveStatus status,
+    @Default(ElementStatus.new_) ElementStatus status,
     @JsonKey(name: 'mastery_level') @Default(0) int masteryLevel, // 0-100 熟练度
     @JsonKey(name: 'last_practiced_at') @Default(0) int lastPracticedAt, // Timestamp 上次练习时间
 
     // 元数据
     @JsonKey(name: 'created_at') @Default(0) int createdAt, // Timestamp
     @JsonKey(name: 'updated_at') int? updatedAt, // Timestamp
-  }) = _DanceMove;
+  }) = _DanceElement;
 
-  factory DanceMove.fromJson(Map<String, dynamic> json) =>
-      _$DanceMoveFromJson(json);
+  factory DanceElement.fromJson(Map<String, dynamic> json) =>
+      _$DanceElementFromJson(json);
 }
 
 /// 视频源类型
@@ -43,8 +43,8 @@ enum VideoSourceType {
   none, // 无视频源
 }
 
-/// 动作状态
-enum MoveStatus {
+/// 元素状态
+enum ElementStatus {
   @JsonValue('new')
   new_,
   @JsonValue('learning')

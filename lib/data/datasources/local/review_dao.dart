@@ -4,7 +4,7 @@ import 'database_helper.dart';
 /// 复习记录数据模型
 class ReviewRecord {
   final int? id;
-  final String moveId;
+  final String elementId;
   final String feedback;
   final int reviewedAt;
   final int previousMastery;
@@ -12,7 +12,7 @@ class ReviewRecord {
 
   ReviewRecord({
     this.id,
-    required this.moveId,
+    required this.elementId,
     required this.feedback,
     required this.reviewedAt,
     required this.previousMastery,
@@ -21,7 +21,7 @@ class ReviewRecord {
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'move_id': moveId,
+        'element_id': elementId,
         'feedback': feedback,
         'reviewed_at': reviewedAt,
         'previous_mastery': previousMastery,
@@ -30,7 +30,7 @@ class ReviewRecord {
 
   factory ReviewRecord.fromJson(Map<String, dynamic> json) => ReviewRecord(
         id: json['id'] as int?,
-        moveId: json['move_id'] as String,
+        elementId: json['element_id'] as String,
         feedback: json['feedback'] as String,
         reviewedAt: json['reviewed_at'] as int,
         previousMastery: json['previous_mastery'] as int,
@@ -51,13 +51,13 @@ class ReviewDao {
     );
   }
 
-  /// 获取某动作的所有复习记录
-  Future<List<ReviewRecord>> getByMoveId(String moveId) async {
+  /// 获取某元素的所有复习记录
+  Future<List<ReviewRecord>> getByElementId(String elementId) async {
     final db = await _dbHelper.database;
     final List<Map<String, dynamic>> maps = await db.query(
       DatabaseHelper.tableReviewRecords,
-      where: 'move_id = ?',
-      whereArgs: [moveId],
+      where: 'element_id = ?',
+      whereArgs: [elementId],
       orderBy: 'reviewed_at DESC',
     );
     return maps.map((json) => ReviewRecord.fromJson(json)).toList();
@@ -92,13 +92,13 @@ class ReviewDao {
     return Sqflite.firstIntValue(result) ?? 0;
   }
 
-  /// 删除某动作的所有复习记录
-  Future<void> deleteByMoveId(String moveId) async {
+  /// 删除某元素的所有复习记录
+  Future<void> deleteByElementId(String elementId) async {
     final db = await _dbHelper.database;
     await db.delete(
       DatabaseHelper.tableReviewRecords,
-      where: 'move_id = ?',
-      whereArgs: [moveId],
+      where: 'element_id = ?',
+      whereArgs: [elementId],
     );
   }
 

@@ -13,8 +13,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
   double _bgmVolume = 0.7;
-  double _ttsSpeed = 0.5;
-  bool _enableTts = true;
   bool _enableBackgroundPlay = true;
 
   @override
@@ -35,15 +33,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
               value: _bgmVolume,
               onChanged: (value) => setState(() => _bgmVolume = value),
             ),
-            _buildDivider(),
-            _buildSliderSetting(
-              icon: Icons.record_voice_over_outlined,
-              title: 'TTS 语速',
-              value: _ttsSpeed,
-              min: 0.2,
-              max: 1.0,
-              onChanged: (value) => setState(() => _ttsSpeed = value),
-            ),
           ]),
 
           const SizedBox(height: 24),
@@ -51,14 +40,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
           // 训练设置
           _buildSectionHeader('训练设置'),
           _buildSettingsCard([
-            _buildSwitchSetting(
-              icon: Icons.record_voice_over_outlined,
-              title: '启用语音提示',
-              subtitle: '训练时朗读动作名称',
-              value: _enableTts,
-              onChanged: (value) => setState(() => _enableTts = value),
-            ),
-            _buildDivider(),
             _buildSwitchSetting(
               icon: Icons.music_video_outlined,
               title: '后台播放',

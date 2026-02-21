@@ -3,7 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../providers/dance_moves_provider.dart';
+import '../../providers/user_elements_provider.dart';
 import '../../providers/statistics_provider.dart';
 
 /// 首页
@@ -12,14 +12,14 @@ class HomePage extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final moveCountAsync = ref.watch(moveCountProvider);
-    final allMovesAsync = ref.watch(allMovesProvider);
+    final elementCountAsync = ref.watch(elementCountProvider);
+    final allElementsAsync = ref.watch(allElementsProvider);
     final weekReviewAsync = ref.watch(weekReviewCountProvider);
     final streakAsync = ref.watch(streakDaysProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('DanceLoop'),
+        title: const Text('Wooho'),
         actions: [
           IconButton(
             icon: const Icon(Icons.settings_outlined),
@@ -32,8 +32,8 @@ class HomePage extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // 动作库卡片
-            _buildLibraryCard(context, ref, moveCountAsync),
+            // 元素库卡片
+            _buildLibraryCard(context, ref, elementCountAsync),
             const SizedBox(height: 24),
 
             // 快捷操作
@@ -49,18 +49,18 @@ class HomePage extends ConsumerWidget {
             const Spacer(),
 
             // 统计信息
-            _buildStats(context, allMovesAsync, weekReviewAsync, streakAsync),
+            _buildStats(context, allElementsAsync, weekReviewAsync, streakAsync),
           ],
         ),
       ),
     );
   }
 
-  /// 动作库卡片
+  /// 元素库卡片
   Widget _buildLibraryCard(
     BuildContext context,
     WidgetRef ref,
-    AsyncValue<int> moveCountAsync,
+    AsyncValue<int> elementCountAsync,
   ) {
     return Container(
       width: double.infinity,
@@ -77,7 +77,7 @@ class HomePage extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            '动作库',
+            '元素库',
             style: AppTextStyles.body.copyWith(
               color: AppColors.textPrimary.withOpacity(0.8),
             ),
@@ -86,7 +86,7 @@ class HomePage extends ConsumerWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.end,
             children: [
-              moveCountAsync.when(
+              elementCountAsync.when(
                 data: (count) => Text(
                   '$count',
                   style: AppTextStyles.heading1.copyWith(
@@ -113,7 +113,7 @@ class HomePage extends ConsumerWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),
                 child: Text(
-                  '个动作',
+                  '个元素',
                   style: AppTextStyles.body.copyWith(
                     color: AppColors.textPrimary.withOpacity(0.8),
                   ),
@@ -125,7 +125,7 @@ class HomePage extends ConsumerWidget {
           SizedBox(
             width: double.infinity,
             child: ElevatedButton(
-              onPressed: moveCountAsync.maybeWhen(
+              onPressed: elementCountAsync.maybeWhen(
                 data: (count) => count > 0
                     ? () => _startTraining(context, ref)
                     : null,
@@ -150,7 +150,7 @@ class HomePage extends ConsumerWidget {
         Expanded(
           child: _ActionCard(
             icon: Icons.library_music_outlined,
-            title: '动作库',
+            title: '元素库',
             onTap: () => context.push('/library'),
           ),
         ),
@@ -158,7 +158,7 @@ class HomePage extends ConsumerWidget {
         Expanded(
           child: _ActionCard(
             icon: Icons.add_box_outlined,
-            title: '添加动作',
+            title: '添加元素',
             onTap: () => context.push('/library/add'),
           ),
         ),
@@ -169,7 +169,7 @@ class HomePage extends ConsumerWidget {
   /// 统计信息
   Widget _buildStats(
     BuildContext context,
-    AsyncValue<List> allMovesAsync,
+    AsyncValue<List> allElementsAsync,
     AsyncValue<int> weekReviewAsync,
     AsyncValue<int> streakAsync,
   ) {
@@ -183,9 +183,9 @@ class HomePage extends ConsumerWidget {
         mainAxisAlignment: MainAxisAlignment.spaceAround,
         children: [
           _StatItem(
-            label: '总动作',
-            value: allMovesAsync.maybeWhen(
-              data: (moves) => moves.length.toString(),
+            label: '总元素',
+            value: allElementsAsync.maybeWhen(
+              data: (elements) => elements.length.toString(),
               orElse: () => '-',
             ),
           ),

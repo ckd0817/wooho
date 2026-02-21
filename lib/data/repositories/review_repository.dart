@@ -9,9 +9,9 @@ class ReviewRepository {
     await _dao.insert(record);
   }
 
-  /// 获取某动作的复习历史
-  Future<List<ReviewRecord>> getMoveHistory(String moveId) async {
-    return await _dao.getByMoveId(moveId);
+  /// 获取某元素的复习历史
+  Future<List<ReviewRecord>> getElementHistory(String elementId) async {
+    return await _dao.getByElementId(elementId);
   }
 
   /// 获取日期范围内的复习记录
@@ -27,9 +27,9 @@ class ReviewRepository {
     return await _dao.getTodayReviewCount();
   }
 
-  /// 删除某动作的复习记录
-  Future<void> deleteMoveRecords(String moveId) async {
-    await _dao.deleteByMoveId(moveId);
+  /// 删除某元素的复习记录
+  Future<void> deleteElementRecords(String elementId) async {
+    await _dao.deleteByElementId(elementId);
   }
 
   /// 获取本周复习次数

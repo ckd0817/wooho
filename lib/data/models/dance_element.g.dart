@@ -1,13 +1,13 @@
 // GENERATED CODE - DO NOT MODIFY BY HAND
 
-part of 'dance_move.dart';
+part of 'dance_element.dart';
 
 // **************************************************************************
 // JsonSerializableGenerator
 // **************************************************************************
 
-_$DanceMoveImpl _$$DanceMoveImplFromJson(Map<String, dynamic> json) =>
-    _$DanceMoveImpl(
+_$DanceElementImpl _$$DanceElementImplFromJson(Map<String, dynamic> json) =>
+    _$DanceElementImpl(
       id: json['id'] as String,
       name: json['name'] as String,
       category: json['category'] as String,
@@ -19,15 +19,15 @@ _$DanceMoveImpl _$$DanceMoveImplFromJson(Map<String, dynamic> json) =>
       trimStart: (json['trim_start'] as num?)?.toInt() ?? 0,
       trimEnd: (json['trim_end'] as num?)?.toInt() ?? 0,
       status:
-          $enumDecodeNullable(_$MoveStatusEnumMap, json['status']) ??
-          MoveStatus.new_,
+          $enumDecodeNullable(_$ElementStatusEnumMap, json['status']) ??
+          ElementStatus.new_,
       masteryLevel: (json['mastery_level'] as num?)?.toInt() ?? 0,
       lastPracticedAt: (json['last_practiced_at'] as num?)?.toInt() ?? 0,
       createdAt: (json['created_at'] as num?)?.toInt() ?? 0,
       updatedAt: (json['updated_at'] as num?)?.toInt(),
     );
 
-Map<String, dynamic> _$$DanceMoveImplToJson(_$DanceMoveImpl instance) =>
+Map<String, dynamic> _$$DanceElementImplToJson(_$DanceElementImpl instance) =>
     <String, dynamic>{
       'id': instance.id,
       'name': instance.name,
@@ -36,7 +36,7 @@ Map<String, dynamic> _$$DanceMoveImplToJson(_$DanceMoveImpl instance) =>
       'video_uri': instance.videoUri,
       'trim_start': instance.trimStart,
       'trim_end': instance.trimEnd,
-      'status': _$MoveStatusEnumMap[instance.status]!,
+      'status': _$ElementStatusEnumMap[instance.status]!,
       'mastery_level': instance.masteryLevel,
       'last_practiced_at': instance.lastPracticedAt,
       'created_at': instance.createdAt,
@@ -50,8 +50,8 @@ const _$VideoSourceTypeEnumMap = {
   VideoSourceType.none: 'none',
 };
 
-const _$MoveStatusEnumMap = {
-  MoveStatus.new_: 'new',
-  MoveStatus.learning: 'learning',
-  MoveStatus.reviewing: 'reviewing',
+const _$ElementStatusEnumMap = {
+  ElementStatus.new_: 'new',
+  ElementStatus.learning: 'learning',
+  ElementStatus.reviewing: 'reviewing',
 };

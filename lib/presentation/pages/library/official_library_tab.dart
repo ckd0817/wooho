@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../providers/dance_moves_provider.dart';
+import '../../providers/user_elements_provider.dart';
 import '../../providers/dance_elements_provider.dart';
 import '../../widgets/add_move_dialog.dart';
 
-/// 官方动作库 Tab
+/// 官方元素库 Tab
 class OfficialLibraryTab extends ConsumerStatefulWidget {
   const OfficialLibraryTab({super.key});
 
@@ -27,8 +27,8 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
 
   @override
   Widget build(BuildContext context) {
-    final libraryAsync = ref.watch(danceElementsLibraryProvider);
-    final addedMovesAsync = ref.watch(addedMovesSetProvider);
+    final libraryAsync = ref.watch(presetElementsLibraryProvider);
+    final addedElementsAsync = ref.watch(addedElementsSetProvider);
 
     return Column(
       children: [
@@ -42,11 +42,11 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
           error: (_, __) => const SizedBox.shrink(),
         ),
 
-        // 动作列表
+        // 元素列表
         Expanded(
           child: libraryAsync.when(
-            data: (library) => addedMovesAsync.when(
-              data: (addedMoves) => _buildElementsList(library, addedMoves),
+            data: (library) => addedElementsAsync.when(
+              data: (addedElements) => _buildElementsList(library, addedElements),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, __) => _buildElementsList(library, {}),
             ),
@@ -79,7 +79,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
         controller: _searchController,
         onChanged: (value) => setState(() => _searchQuery = value),
         decoration: InputDecoration(
-          hintText: '搜索动作...',
+          hintText: '搜索元素...',
           prefixIcon: const Icon(Icons.search, size: 20),
           suffixIcon: _searchQuery.isNotEmpty
               ? IconButton(
@@ -103,7 +103,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
   }
 
   /// 分类筛选
-  Widget _buildCategoryFilter(DanceElementsLibrary library) {
+  Widget _buildCategoryFilter(PresetElementsLibrary library) {
     return Container(
       height: 50,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
@@ -129,13 +129,13 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
     );
   }
 
-  /// 动作列表
+  /// 元素列表
   Widget _buildElementsList(
-    DanceElementsLibrary library,
-    Set<String> addedMoves,
+    PresetElementsLibrary library,
+    Set<String> addedElements,
   ) {
     // 获取要显示的元素
-    List<(DanceCategory, DanceElement)> elementsToShow;
+    List<(PresetCategory, PresetElement)> elementsToShow;
 
     if (_searchQuery.isNotEmpty) {
       // 搜索模式
@@ -149,7 +149,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
       elementsToShow = category.elements.map((e) => (category, e)).toList();
     } else {
       // 全部分类模式 - 按分类分组显示
-      return _buildGroupedElementsList(library, addedMoves);
+      return _buildGroupedElementsList(library, addedElements);
     }
 
     if (elementsToShow.isEmpty) {
@@ -161,7 +161,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
       itemCount: elementsToShow.length,
       itemBuilder: (context, index) {
         final (category, element) = elementsToShow[index];
-        final isAdded = addedMoves.contains('${category.name}|${element.name}');
+        final isAdded = addedElements.contains('${category.name}|${element.name}');
         return _ElementCard(
           category: category,
           element: element,
@@ -172,10 +172,10 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
     );
   }
 
-  /// 分组显示的动作列表（全部模式）
+  /// 分组显示的元素列表（全部模式）
   Widget _buildGroupedElementsList(
-    DanceElementsLibrary library,
-    Set<String> addedMoves,
+    PresetElementsLibrary library,
+    Set<String> addedElements,
   ) {
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -184,7 +184,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
         final category = library.categories[index];
         return _CategorySection(
           category: category,
-          addedMoves: addedMoves,
+          addedElements: addedElements,
           onAdd: (element) => _handleAdd(category, element),
         );
       },
@@ -204,7 +204,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
           ),
           const SizedBox(height: 16),
           Text(
-            '没有找到匹配的动作',
+            '没有找到匹配的元素',
             style: AppTextStyles.body.copyWith(
               color: AppColors.textSecondary,
             ),
@@ -214,10 +214,10 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
     );
   }
 
-  /// 处理添加动作
+  /// 处理添加元素
   Future<void> _handleAdd(
-    DanceCategory category,
-    DanceElement element,
+    PresetCategory category,
+    PresetElement element,
   ) async {
     final result = await AddMoveDialog.show(
       context,
@@ -227,7 +227,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
 
     if (result != null && mounted) {
       final success = await ref
-          .read(danceMovesNotifierProvider.notifier)
+          .read(danceElementsNotifierProvider.notifier)
           .quickAddFromOfficial(
             category.name,
             element.name,
@@ -238,7 +238,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
         if (success) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-              content: Text('${element.name} 已添加到我的动作库'),
+              content: Text('${element.name} 已添加到我的元素库'),
               backgroundColor: AppColors.success,
               behavior: SnackBarBehavior.floating,
             ),
@@ -246,7 +246,7 @@ class _OfficialLibraryTabState extends ConsumerState<OfficialLibraryTab> {
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
-              content: Text('该动作已存在于您的动作库中'),
+              content: Text('该元素已存在于您的元素库中'),
               behavior: SnackBarBehavior.floating,
             ),
           );
@@ -299,13 +299,13 @@ class _CategoryChip extends StatelessWidget {
 
 /// 分类区域（用于分组显示）
 class _CategorySection extends StatelessWidget {
-  final DanceCategory category;
-  final Set<String> addedMoves;
-  final void Function(DanceElement element) onAdd;
+  final PresetCategory category;
+  final Set<String> addedElements;
+  final void Function(PresetElement element) onAdd;
 
   const _CategorySection({
     required this.category,
-    required this.addedMoves,
+    required this.addedElements,
     required this.onAdd,
   });
 
@@ -345,9 +345,9 @@ class _CategorySection extends StatelessWidget {
           ),
         ),
 
-        // 动作列表
+        // 元素列表
         ...category.elements.map((element) {
-          final isAdded = addedMoves.contains('${category.name}|${element.name}');
+          final isAdded = addedElements.contains('${category.name}|${element.name}');
           return Padding(
             padding: const EdgeInsets.only(bottom: 8),
             child: _ElementCard(
@@ -365,10 +365,10 @@ class _CategorySection extends StatelessWidget {
   }
 }
 
-/// 动作元素卡片
+/// 元素卡片
 class _ElementCard extends StatelessWidget {
-  final DanceCategory category;
-  final DanceElement element;
+  final PresetCategory category;
+  final PresetElement element;
   final bool isAdded;
   final VoidCallback onAdd;
 
@@ -392,7 +392,7 @@ class _ElementCard extends StatelessWidget {
       ),
       child: Row(
         children: [
-          // 动作信息
+          // 元素信息
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

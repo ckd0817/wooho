@@ -22,7 +22,8 @@ ReviewSession _$ReviewSessionFromJson(Map<String, dynamic> json) {
 /// @nodoc
 mixin _$ReviewSession {
   String get date => throw _privateConstructorUsedError; // YYYY-MM-DD
-  List<DanceMove> get items => throw _privateConstructorUsedError; // 今日需要复习的动作
+  List<DanceElement> get items =>
+      throw _privateConstructorUsedError; // 今日需要复习的元素
   List<String> get completedItemIds =>
       throw _privateConstructorUsedError; // 已打分 ID
   bool get isDrillComplete => throw _privateConstructorUsedError; // 是否完成了串联训练
@@ -47,7 +48,7 @@ abstract class $ReviewSessionCopyWith<$Res> {
   @useResult
   $Res call({
     String date,
-    List<DanceMove> items,
+    List<DanceElement> items,
     List<String> completedItemIds,
     bool isDrillComplete,
     int createdAt,
@@ -84,7 +85,7 @@ class _$ReviewSessionCopyWithImpl<$Res, $Val extends ReviewSession>
             items: null == items
                 ? _value.items
                 : items // ignore: cast_nullable_to_non_nullable
-                      as List<DanceMove>,
+                      as List<DanceElement>,
             completedItemIds: null == completedItemIds
                 ? _value.completedItemIds
                 : completedItemIds // ignore: cast_nullable_to_non_nullable
@@ -114,7 +115,7 @@ abstract class _$$ReviewSessionImplCopyWith<$Res>
   @useResult
   $Res call({
     String date,
-    List<DanceMove> items,
+    List<DanceElement> items,
     List<String> completedItemIds,
     bool isDrillComplete,
     int createdAt,
@@ -150,7 +151,7 @@ class __$$ReviewSessionImplCopyWithImpl<$Res>
         items: null == items
             ? _value._items
             : items // ignore: cast_nullable_to_non_nullable
-                  as List<DanceMove>,
+                  as List<DanceElement>,
         completedItemIds: null == completedItemIds
             ? _value._completedItemIds
             : completedItemIds // ignore: cast_nullable_to_non_nullable
@@ -173,7 +174,7 @@ class __$$ReviewSessionImplCopyWithImpl<$Res>
 class _$ReviewSessionImpl implements _ReviewSession {
   const _$ReviewSessionImpl({
     required this.date,
-    required final List<DanceMove> items,
+    required final List<DanceElement> items,
     final List<String> completedItemIds = const [],
     this.isDrillComplete = false,
     required this.createdAt,
@@ -186,18 +187,18 @@ class _$ReviewSessionImpl implements _ReviewSession {
   @override
   final String date;
   // YYYY-MM-DD
-  final List<DanceMove> _items;
+  final List<DanceElement> _items;
   // YYYY-MM-DD
   @override
-  List<DanceMove> get items {
+  List<DanceElement> get items {
     if (_items is EqualUnmodifiableListView) return _items;
     // ignore: implicit_dynamic_type
     return EqualUnmodifiableListView(_items);
   }
 
-  // 今日需要复习的动作
+  // 今日需要复习的元素
   final List<String> _completedItemIds;
-  // 今日需要复习的动作
+  // 今日需要复习的元素
   @override
   @JsonKey()
   List<String> get completedItemIds {
@@ -265,7 +266,7 @@ class _$ReviewSessionImpl implements _ReviewSession {
 abstract class _ReviewSession implements ReviewSession {
   const factory _ReviewSession({
     required final String date,
-    required final List<DanceMove> items,
+    required final List<DanceElement> items,
     final List<String> completedItemIds,
     final bool isDrillComplete,
     required final int createdAt,
@@ -277,7 +278,7 @@ abstract class _ReviewSession implements ReviewSession {
   @override
   String get date; // YYYY-MM-DD
   @override
-  List<DanceMove> get items; // 今日需要复习的动作
+  List<DanceElement> get items; // 今日需要复习的元素
   @override
   List<String> get completedItemIds; // 已打分 ID
   @override

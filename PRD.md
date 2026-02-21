@@ -1,7 +1,7 @@
-# Product Requirements Document (PRD): DanceLoop SRS
+# Product Requirements Document (PRD): Wooho SRS
 
 ## 1. 项目概述 (Project Overview)
-**DanceLoop SRS** 是一款结合了 **艾宾浩斯遗忘曲线 (Spaced Repetition System)** 与 **随机串联训练 (Random Flow Drill)** 的街舞学习应用。
+**Wooho SRS** 是一款结合了 **艾宾浩斯遗忘曲线 (Spaced Repetition System)** 与 **随机串联训练 (Random Flow Drill)** 的街舞学习应用。
 核心目标是解决舞者在自主练习时"缺乏计划"和"只会做单动作、不会连接"的痛点。
 
 ### 1.1 核心价值

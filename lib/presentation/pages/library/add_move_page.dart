@@ -8,12 +8,12 @@ import 'package:video_player/video_player.dart';
 import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
-import '../../../data/models/dance_move.dart';
+import '../../../data/models/dance_element.dart';
 import '../../../domain/services/srs_algorithm_service.dart';
-import '../../providers/dance_moves_provider.dart';
+import '../../providers/user_elements_provider.dart';
 import '../../providers/dance_elements_provider.dart';
 
-/// 添加动作页面
+/// 添加元素页面
 class AddMovePage extends ConsumerStatefulWidget {
   const AddMovePage({super.key});
 
@@ -54,14 +54,14 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
 
   @override
   Widget build(BuildContext context) {
-    final libraryAsync = ref.watch(danceElementsLibraryProvider);
+    final libraryAsync = ref.watch(presetElementsLibraryProvider);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('添加动作'),
+        title: const Text('添加元素'),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _saveMove,
+            onPressed: _isSaving ? null : _saveElement,
             child: _isSaving
                 ? const SizedBox(
                     width: 20,
@@ -81,7 +81,7 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
             _buildPresetLibrarySection(libraryAsync),
             const SizedBox(height: 24),
 
-            // 动作名称
+            // 元素名称
             _buildNameField(),
             const SizedBox(height: 16),
 
@@ -140,7 +140,7 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
         ),
         if (_showPresetLibrary)
           libraryAsync.when(
-            data: (library) => _buildPresetLibraryContent(library as DanceElementsLibrary),
+            data: (library) => _buildPresetLibraryContent(library as PresetElementsLibrary),
             loading: () => const Center(child: CircularProgressIndicator()),
             error: (_, __) => Text(
               '加载预置库失败',
@@ -152,7 +152,7 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
   }
 
   /// 预置库内容
-  Widget _buildPresetLibraryContent(DanceElementsLibrary library) {
+  Widget _buildPresetLibraryContent(PresetElementsLibrary library) {
     return Container(
       margin: const EdgeInsets.only(top: 8),
       padding: const EdgeInsets.all(16),
@@ -197,7 +197,7 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
           if (_selectedCategory != null) ...[
             const SizedBox(height: 16),
             Text(
-              '选择动作',
+              '选择元素',
               style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
             ),
             const SizedBox(height: 8),
@@ -235,12 +235,12 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
     return TextFormField(
       controller: _nameController,
       decoration: const InputDecoration(
-        labelText: '动作名称 *',
+        labelText: '元素名称 *',
         hintText: '例如: Walk Out',
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return '请输入动作名称';
+          return '请输入元素名称';
         }
         return null;
       },
@@ -531,8 +531,8 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
     });
   }
 
-  /// 保存动作
-  Future<void> _saveMove() async {
+  /// 保存元素
+  Future<void> _saveElement() async {
     if (!_formKey.currentState!.validate()) return;
 
     // 验证视频源
@@ -571,7 +571,7 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
           break;
       }
 
-      final move = DanceMove(
+      final element = DanceElement(
         id: const Uuid().v4(),
         name: _nameController.text.trim(),
         category: _categoryController.text.trim(),
@@ -579,17 +579,17 @@ class _AddMovePageState extends ConsumerState<AddMovePage> {
         videoUri: videoUri,
         trimStart: _trimStart,
         trimEnd: _trimEnd,
-        status: MoveStatus.new_,
+        status: ElementStatus.new_,
         masteryLevel: initialMastery,
         lastPracticedAt: now,
         createdAt: now,
       );
 
-      await ref.read(danceMovesNotifierProvider.notifier).addMove(move);
+      await ref.read(danceElementsNotifierProvider.notifier).addElement(element);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('动作已添加')),
+          const SnackBar(content: Text('元素已添加')),
         );
         context.pop();
       }

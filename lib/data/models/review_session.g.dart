@@ -10,7 +10,7 @@ _$ReviewSessionImpl _$$ReviewSessionImplFromJson(Map<String, dynamic> json) =>
     _$ReviewSessionImpl(
       date: json['date'] as String,
       items: (json['items'] as List<dynamic>)
-          .map((e) => DanceMove.fromJson(e as Map<String, dynamic>))
+          .map((e) => DanceElement.fromJson(e as Map<String, dynamic>))
           .toList(),
       completedItemIds:
           (json['completedItemIds'] as List<dynamic>?)

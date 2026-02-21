@@ -4,56 +4,56 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
-import '../../../data/models/dance_move.dart';
+import '../../../data/models/dance_element.dart';
 import '../../../data/models/drum_loop.dart';
-import '../../../data/repositories/dance_move_repository.dart';
+import '../../../data/repositories/dance_element_repository.dart';
 import '../../providers/drill_provider.dart';
 
 /// 串联训练页面
 class DrillPage extends ConsumerStatefulWidget {
-  final List<String> moveIds;
+  final List<String> elementIds;
 
-  const DrillPage({super.key, required this.moveIds});
+  const DrillPage({super.key, required this.elementIds});
 
   @override
   ConsumerState<DrillPage> createState() => _DrillPageState();
 }
 
 class _DrillPageState extends ConsumerState<DrillPage> {
-  List<DanceMove>? _moves;
+  List<DanceElement>? _elements;
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _loadMoves();
+    _loadElements();
   }
 
-  Future<void> _loadMoves() async {
-    if (widget.moveIds.isEmpty) {
+  Future<void> _loadElements() async {
+    if (widget.elementIds.isEmpty) {
       setState(() => _isLoading = false);
       return;
     }
 
-    final repository = DanceMoveRepository();
-    final moves = <DanceMove>[];
+    final repository = DanceElementRepository();
+    final elements = <DanceElement>[];
 
-    for (final id in widget.moveIds) {
-      final move = await repository.getMoveById(id);
-      if (move != null) {
-        moves.add(move);
+    for (final id in widget.elementIds) {
+      final element = await repository.getElementById(id);
+      if (element != null) {
+        elements.add(element);
       }
     }
 
     setState(() {
-      _moves = moves;
+      _elements = elements;
       _isLoading = false;
     });
 
     // 准备训练数据（不自动开始，等待用户点击播放）
-    if (moves.isNotEmpty) {
+    if (elements.isNotEmpty) {
       Future.microtask(() {
-        ref.read(drillProvider.notifier).prepareDrill(moves);
+        ref.read(drillProvider.notifier).prepareDrill(elements);
       });
     }
   }
@@ -74,7 +74,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
       );
     }
 
-    if (_moves == null || _moves!.isEmpty) {
+    if (_elements == null || _elements!.isEmpty) {
       return Scaffold(
         backgroundColor: AppColors.drillBackground,
         appBar: AppBar(
@@ -87,7 +87,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
         ),
         body: Center(
           child: Text(
-            '没有可训练的动作',
+            '没有可训练的元素',
             style: AppTextStyles.body.copyWith(
               color: AppColors.drillText,
             ),
@@ -151,8 +151,8 @@ class _DrillPageState extends ConsumerState<DrillPage> {
 
   /// 主要内容
   Widget _buildMainContent(DrillState state, int currentBeat) {
-    final currentMove = state.currentMove;
-    final nextMove = state.nextMove;
+    final currentElement = state.currentElement;
+    final nextElement = state.nextElement;
 
     return GestureDetector(
       onTap: () => _togglePlayPause(state),
@@ -162,7 +162,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             // 鼓点显示器
-            if (state.hasMoves)
+            if (state.hasElements)
               _BeatIndicator(
                 currentBeat: currentBeat,
                 isPlaying: state.isPlaying,
@@ -170,12 +170,12 @@ class _DrillPageState extends ConsumerState<DrillPage> {
 
             const SizedBox(height: 32),
 
-            // 当前动作名称 (大字)
-            if (currentMove != null)
+            // 当前元素名称 (大字)
+            if (currentElement != null)
               Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Text(
-                  currentMove.name,
+                  currentElement.name,
                   style: AppTextStyles.drillMoveName.copyWith(
                     color: AppColors.drillText,
                   ),
@@ -187,8 +187,8 @@ class _DrillPageState extends ConsumerState<DrillPage> {
 
             const SizedBox(height: 32),
 
-            // 下一个动作预告
-            if (nextMove != null && state.isPlaying)
+            // 下一个元素预告
+            if (nextElement != null && state.isPlaying)
               Column(
                 children: [
                   Text(
@@ -199,7 +199,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    nextMove.name,
+                    nextElement.name,
                     style: AppTextStyles.drillNextMove.copyWith(
                       color: AppColors.drillTextSecondary,
                     ),
@@ -220,7 +220,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
                     ),
                     const SizedBox(width: 8),
                     Text(
-                      '点击屏幕${state.hasMoves ? "继续" : "开始"}',
+                      '点击屏幕${state.hasElements ? "继续" : "开始"}',
                       style: AppTextStyles.body.copyWith(
                         color: AppColors.drillText.withOpacity(0.5),
                       ),
@@ -365,13 +365,13 @@ class _DrillPageState extends ConsumerState<DrillPage> {
     if (state.isPlaying) {
       notifier.pauseDrill();
     } else {
-      debugPrint('_togglePlayPause: hasMoves=${state.hasMoves}, _moves=${_moves?.length}');
-      if (state.hasMoves) {
+      debugPrint('_togglePlayPause: hasElements=${state.hasElements}, _elements=${_elements?.length}');
+      if (state.hasElements) {
         debugPrint('Calling resumeDrill');
         notifier.resumeDrill();
-      } else if (_moves != null && _moves!.isNotEmpty) {
+      } else if (_elements != null && _elements!.isNotEmpty) {
         debugPrint('Calling startDrill');
-        notifier.startDrill(_moves!);
+        notifier.startDrill(_elements!);
       }
     }
   }
@@ -407,7 +407,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
               ),
               const SizedBox(height: 8),
               Text(
-                '已完成 ${widget.moveIds.length} 个动作的练习',
+                '已完成 ${widget.elementIds.length} 个元素的练习',
                 style: AppTextStyles.body.copyWith(
                   color: AppColors.textSecondary,
                 ),
@@ -448,8 +448,8 @@ class _DrillPageState extends ConsumerState<DrillPage> {
 
   /// 重新洗牌
   void _reshuffle() {
-    if (_moves != null && _moves!.isNotEmpty) {
-      ref.read(drillProvider.notifier).startDrill(_moves!);
+    if (_elements != null && _elements!.isNotEmpty) {
+      ref.read(drillProvider.notifier).startDrill(_elements!);
     }
   }
 

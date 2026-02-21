@@ -3,7 +3,7 @@ class AppConstants {
   AppConstants._();
 
   /// 应用名称
-  static const String appName = 'DanceLoop';
+  static const String appName = 'Wooho';
 
   /// 应用版本
   static const String appVersion = '1.0.0';
@@ -15,9 +15,9 @@ class AppConstants {
   static const int minBpm = 60;
   static const int maxBpm = 130;
 
-  /// 每个动作默认拍数
+  /// 每个元素默认拍数
   static const int beatsPerMove = 8;
 
-  /// 预告拍数 (动作结束前多少拍预告下一个)
+  /// 预告拍数 (元素结束前多少拍预告下一个)
   static const int announceBeats = 2;
 }

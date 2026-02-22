@@ -198,13 +198,15 @@ class _ElementCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 12),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppColors.surface,
-        borderRadius: BorderRadius.circular(12),
-      ),
+    return GestureDetector(
+      onTap: () => context.push('/library/edit/${element.id}'),
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: AppColors.surface,
+          borderRadius: BorderRadius.circular(12),
+        ),
       child: Row(
         children: [
           // 状态指示器
@@ -270,6 +272,7 @@ class _ElementCard extends StatelessWidget {
           ),
         ],
       ),
+    ),
     );
   }
 

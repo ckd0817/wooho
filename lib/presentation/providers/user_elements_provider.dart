@@ -33,6 +33,12 @@ final categoriesProvider = FutureProvider<List<String>>((ref) async {
   return await repository.getAllCategories();
 });
 
+/// 根据 ID 获取元素 Provider
+final elementByIdProvider = FutureProvider.family<DanceElement?, String>((ref, id) async {
+  final repository = ref.watch(danceElementRepositoryProvider);
+  return await repository.getElementById(id);
+});
+
 /// 元素管理 Notifier
 class DanceElementsNotifier extends StateNotifier<AsyncValue<void>> {
   final DanceElementRepository _repository;

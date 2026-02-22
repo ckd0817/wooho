@@ -3,9 +3,14 @@ import 'package:go_router/go_router.dart';
 import '../../presentation/pages/home/home_page.dart';
 import '../../presentation/pages/library/library_page.dart';
 import '../../presentation/pages/library/add_move_page.dart';
+import '../../presentation/pages/library/edit_element_page.dart';
 import '../../presentation/pages/review/review_page.dart';
 import '../../presentation/pages/drill/drill_page.dart';
 import '../../presentation/pages/settings/settings_page.dart';
+import '../../presentation/pages/settings/training_settings_page.dart';
+import '../../presentation/pages/routine/routine_page.dart';
+import '../../presentation/pages/routine/add_routine_page.dart';
+import '../../presentation/pages/routine/routine_review_page.dart';
 
 /// 路由路径常量
 class Routes {
@@ -15,9 +20,14 @@ class Routes {
   static const String home = '/';
   static const String library = '/library';
   static const String addElement = '/library/add';
+  static const String editElement = '/library/edit/:id';
   static const String review = '/review';
   static const String drill = '/drill';
   static const String settings = '/settings';
+  static const String trainingSettings = '/settings/training';
+  static const String routines = '/routines';
+  static const String addRoutine = '/routines/add';
+  static const String routineReview = '/routines/review';
 }
 
 /// 应用路由配置
@@ -42,6 +52,14 @@ class AppRouter {
       builder: (context, state) => const AddMovePage(),
     ),
     GoRoute(
+      path: '/library/edit/:id',
+      name: 'editElement',
+      builder: (context, state) {
+        final id = state.pathParameters['id']!;
+        return EditElementPage(elementId: id);
+      },
+    ),
+    GoRoute(
       path: Routes.review,
       name: 'review',
       builder: (context, state) => const ReviewPage(),
@@ -59,6 +77,26 @@ class AppRouter {
       path: Routes.settings,
       name: 'settings',
       builder: (context, state) => const SettingsPage(),
+    ),
+    GoRoute(
+      path: Routes.trainingSettings,
+      name: 'trainingSettings',
+      builder: (context, state) => const TrainingSettingsPage(),
+    ),
+    GoRoute(
+      path: Routes.routines,
+      name: 'routines',
+      builder: (context, state) => const RoutinePage(),
+    ),
+    GoRoute(
+      path: Routes.addRoutine,
+      name: 'addRoutine',
+      builder: (context, state) => const AddRoutinePage(),
+    ),
+    GoRoute(
+      path: Routes.routineReview,
+      name: 'routineReview',
+      builder: (context, state) => const RoutineReviewPage(),
     ),
   ];
 

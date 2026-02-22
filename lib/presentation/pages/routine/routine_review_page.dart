@@ -11,6 +11,7 @@ import '../../../data/models/dance_routine.dart';
 import '../../../domain/services/srs_algorithm_service.dart';
 import '../../providers/routine_review_provider.dart';
 import '../../providers/training_settings_provider.dart';
+import '../home/home_page.dart'; // 为了访问 recentTrainingHistoryProvider
 
 /// 舞段训练页面
 class RoutineReviewPage extends ConsumerStatefulWidget {
@@ -31,7 +32,12 @@ class _RoutineReviewPageState extends ConsumerState<RoutineReviewPage> {
     super.initState();
     Future.microtask(() {
       final settings = ref.read(trainingSettingsProvider);
-      ref.read(routineReviewProvider.notifier).loadTrainingRoutines(count: settings.routineCount);
+      ref.read(routineReviewProvider.notifier).loadTrainingRoutines(
+        count: settings.routineCount,
+        customOrder: settings.customRoutineOrder.isNotEmpty
+            ? settings.customRoutineOrder
+            : null,
+      );
     });
   }
 
@@ -197,7 +203,11 @@ class _RoutineReviewPageState extends ConsumerState<RoutineReviewPage> {
             SizedBox(
               width: double.infinity,
               child: ElevatedButton(
-                onPressed: () => context.pop(),
+                onPressed: () {
+                  // 刷新最近训练记录
+                  ref.invalidate(recentTrainingHistoryProvider);
+                  context.pop();
+                },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: AppColors.primary,
                   foregroundColor: AppColors.textPrimary,

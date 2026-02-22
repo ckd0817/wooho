@@ -160,4 +160,15 @@ class ReviewDao {
     );
     return Sqflite.firstIntValue(result) ?? 0;
   }
+
+  /// 获取最近的复习记录
+  Future<List<ReviewRecord>> getRecentRecords({int limit = 5}) async {
+    final db = await _dbHelper.database;
+    final List<Map<String, dynamic>> maps = await db.query(
+      DatabaseHelper.tableReviewRecords,
+      orderBy: 'reviewed_at DESC',
+      limit: limit,
+    );
+    return maps.map((json) => ReviewRecord.fromJson(json)).toList();
+  }
 }

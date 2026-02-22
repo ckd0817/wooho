@@ -13,6 +13,7 @@ import '../../../data/datasources/local/dance_element_dao.dart';
 import '../../../data/datasources/local/dance_routine_dao.dart';
 import '../../../data/models/dance_element.dart';
 import '../../../data/models/dance_routine.dart';
+import '../../../data/models/routine_record.dart';
 
 /// 今日元素练习次数 Provider
 final todayElementReviewProvider = FutureProvider<int>((ref) async {
@@ -82,6 +83,73 @@ final homeRoutineQueueProvider = FutureProvider<List<DanceRoutine>>((ref) async 
   return orderedRoutines;
 });
 
+/// 训练记录项
+class _TrainingHistoryItem {
+  final String id;
+  final String name;
+  final String type; // 'element' or 'routine'
+  final int timestamp;
+
+  _TrainingHistoryItem({
+    required this.id,
+    required this.name,
+    required this.type,
+    required this.timestamp,
+  });
+}
+
+/// 最近训练记录 Provider（autoDispose 确保每次进入首页都刷新）
+final recentTrainingHistoryProvider = FutureProvider.autoDispose<List<_TrainingHistoryItem>>((ref) async {
+  final elementDao = ReviewDao();
+  final routineDao = RoutineRecordDao();
+  final elementDataDao = DanceElementDao();
+  final routineDataDao = DanceRoutineDao();
+
+  // 获取最近的元素训练记录
+  final elementRecords = await elementDao.getRecentRecords(limit: 10);
+  // 获取最近的舞段训练记录
+  final routineRecords = await routineDao.getRecentRecords(limit: 10);
+
+  // 获取元素名称映射
+  final elements = await elementDataDao.getAll();
+  final elementMap = {for (var e in elements) e.id: e};
+
+  // 获取舞段名称映射
+  final routines = await routineDataDao.getAll();
+  final routineMap = {for (var r in routines) r.id: r};
+
+  // 合并并转换为统一格式
+  final items = <_TrainingHistoryItem>[];
+
+  for (final record in elementRecords) {
+    final element = elementMap[record.elementId];
+    if (element != null) {
+      items.add(_TrainingHistoryItem(
+        id: record.elementId,
+        name: element.name,
+        type: 'element',
+        timestamp: record.reviewedAt,
+      ));
+    }
+  }
+
+  for (final record in routineRecords) {
+    final routine = routineMap[record.routineId];
+    if (routine != null) {
+      items.add(_TrainingHistoryItem(
+        id: record.routineId,
+        name: routine.name,
+        type: 'routine',
+        timestamp: record.reviewedAt,
+      ));
+    }
+  }
+
+  // 按时间排序，取最近的 5 条
+  items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+  return items.take(5).toList();
+});
+
 /// 首页
 class HomePage extends ConsumerWidget {
   const HomePage({super.key});
@@ -115,6 +183,10 @@ class HomePage extends ConsumerWidget {
 
             // 训练入口卡片
             _buildTrainingCards(context, ref, elementCountAsync, routineCountAsync),
+            const SizedBox(height: 24),
+
+            // 最近训练
+            _buildRecentHistory(context, ref),
           ],
         ),
       ),
@@ -282,6 +354,137 @@ class HomePage extends ConsumerWidget {
       },
       orElse: () {},
     );
+  }
+
+  /// 最近训练记录
+  Widget _buildRecentHistory(BuildContext context, WidgetRef ref) {
+    final historyAsync = ref.watch(recentTrainingHistoryProvider);
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '最近训练',
+          style: AppTextStyles.heading3.copyWith(
+            color: AppColors.textPrimary,
+          ),
+        ),
+        const SizedBox(height: 12),
+        historyAsync.when(
+          data: (items) {
+            if (items.isEmpty) {
+              return _buildEmptyHistory();
+            }
+            return Column(
+              children: items.map((item) => _buildHistoryItem(item)).toList(),
+            );
+          },
+          loading: () => const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20),
+              child: CircularProgressIndicator(),
+            ),
+          ),
+          error: (_, __) => _buildEmptyHistory(),
+        ),
+      ],
+    );
+  }
+
+  /// 空状态
+  Widget _buildEmptyHistory() {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Center(
+        child: Text(
+          '暂无训练记录',
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// 训练记录项
+  Widget _buildHistoryItem(_TrainingHistoryItem item) {
+    final timeStr = _formatTime(item.timestamp);
+    final isElement = item.type == 'element';
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 8),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: AppColors.primary.withValues(alpha: 0.1),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Icon(
+              isElement ? Icons.music_note : Icons.queue_music,
+              size: 20,
+              color: AppColors.primary,
+            ),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.name,
+                  style: AppTextStyles.body.copyWith(
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+                Text(
+                  isElement ? '元素' : '舞段',
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Text(
+            timeStr,
+            style: AppTextStyles.bodySmall.copyWith(
+              color: AppColors.textHint,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  /// 格式化时间
+  String _formatTime(int timestamp) {
+    final dateTime = DateTime.fromMillisecondsSinceEpoch(timestamp);
+    final now = DateTime.now();
+    final difference = now.difference(dateTime);
+
+    if (difference.inMinutes < 1) {
+      return '刚刚';
+    } else if (difference.inMinutes < 60) {
+      return '${difference.inMinutes}分钟前';
+    } else if (difference.inHours < 24) {
+      return '${difference.inHours}小时前';
+    } else if (difference.inDays < 7) {
+      return '${difference.inDays}天前';
+    } else {
+      return '${dateTime.month}月${dateTime.day}日';
+    }
   }
 }
 

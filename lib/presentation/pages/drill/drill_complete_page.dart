@@ -82,6 +82,9 @@ class _DrillCompletePageState extends ConsumerState<DrillCompletePage>
     ref.invalidate(homeElementQueueProvider);
     ref.invalidate(homeRoutineQueueProvider);
 
+    // 刷新最近训练记录
+    ref.invalidate(recentTrainingHistoryProvider);
+
     // 返回首页
     if (mounted) {
       Navigator.of(context).popUntil((route) => route.isFirst);

@@ -5,6 +5,7 @@ import '../../data/models/dance_element.dart';
 import '../../data/models/drum_loop.dart';
 import '../../services/audio/audio_engine.dart';
 import '../../core/constants/app_constants.dart';
+import 'training_settings_provider.dart';
 
 /// 音频引擎 Provider
 final audioEngineProvider = Provider<AudioEngine>((ref) {
@@ -24,6 +25,7 @@ class DrillState {
   final int bpm;
   final DrumLoop? currentDrumLoop;
   final List<DrumLoop> availableLoops;
+  final int beatsPerSwitch;
 
   const DrillState({
     this.queue = const [],
@@ -32,6 +34,7 @@ class DrillState {
     this.bpm = AppConstants.defaultBpm,
     this.currentDrumLoop,
     this.availableLoops = const [],
+    this.beatsPerSwitch = 8,
   });
 
   /// 当前元素
@@ -60,6 +63,7 @@ class DrillState {
     int? bpm,
     DrumLoop? currentDrumLoop,
     List<DrumLoop>? availableLoops,
+    int? beatsPerSwitch,
   }) {
     return DrillState(
       queue: queue ?? this.queue,
@@ -68,6 +72,7 @@ class DrillState {
       bpm: bpm ?? this.bpm,
       currentDrumLoop: currentDrumLoop ?? this.currentDrumLoop,
       availableLoops: availableLoops ?? this.availableLoops,
+      beatsPerSwitch: beatsPerSwitch ?? this.beatsPerSwitch,
     );
   }
 }
@@ -98,6 +103,10 @@ class DrillNotifier extends StateNotifier<DrillState> {
     // 初始化音频引擎
     await _audioEngine.initialize();
 
+    // 从设置中读取 beatsPerSwitch
+    final settings = _ref.read(trainingSettingsProvider);
+    _audioEngine.setBeatsPerSwitch(settings.beatsPerSwitch);
+
     // 使用音频的原始 BPM 作为默认值
     final defaultBpm = _audioEngine.currentDrumLoop?.bpm ?? AppConstants.defaultBpm;
     await _audioEngine.setBpm(defaultBpm);
@@ -111,6 +120,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
       bpm: defaultBpm,
       currentDrumLoop: _audioEngine.currentDrumLoop,
       availableLoops: _audioEngine.availableLoops,
+      beatsPerSwitch: settings.beatsPerSwitch,
     );
 
     // 2. 立即启动 Timer（同步操作，几乎无延迟）
@@ -134,6 +144,10 @@ class DrillNotifier extends StateNotifier<DrillState> {
     // 初始化音频引擎（但不播放）
     await _audioEngine.initialize();
 
+    // 从设置中读取 beatsPerSwitch
+    final settings = _ref.read(trainingSettingsProvider);
+    _audioEngine.setBeatsPerSwitch(settings.beatsPerSwitch);
+
     // 使用音频的原始 BPM 作为默认值
     final defaultBpm = _audioEngine.currentDrumLoop?.bpm ?? AppConstants.defaultBpm;
     await _audioEngine.setBpm(defaultBpm);
@@ -146,6 +160,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
       bpm: defaultBpm,
       currentDrumLoop: _audioEngine.currentDrumLoop,
       availableLoops: _audioEngine.availableLoops,
+      beatsPerSwitch: settings.beatsPerSwitch,
     );
   }
 
@@ -186,9 +201,10 @@ class DrillNotifier extends StateNotifier<DrillState> {
   /// 开始节拍循环
   void _startBeatCycle() {
     final elementDurationMs = _audioEngine.getElementDurationMs();
-    final beatDurationMs = elementDurationMs ~/ 8;
+    final beatsPerSwitch = state.beatsPerSwitch;
+    final beatDurationMs = elementDurationMs ~/ beatsPerSwitch;
 
-    debugPrint('Beat cycle started: elementDuration=$elementDurationMs ms, beatDuration=$beatDurationMs ms, _isPlaying=$_isPlaying');
+    debugPrint('Beat cycle started: elementDuration=$elementDurationMs ms, beatDuration=$beatDurationMs ms, beatsPerSwitch=$beatsPerSwitch, _isPlaying=$_isPlaying');
 
     _beatTimer?.cancel();
     _beatCount = 0;
@@ -204,7 +220,7 @@ class DrillNotifier extends StateNotifier<DrillState> {
           return;
         }
 
-        _beatCount = (_beatCount + 1) % 8;
+        _beatCount = (_beatCount + 1) % beatsPerSwitch;
         debugPrint('Beat: $_beatCount');
         // 使用独立的 currentBeatProvider 来更新节拍
         _ref.read(currentBeatProvider.notifier).state = _beatCount;
@@ -265,6 +281,17 @@ class DrillNotifier extends StateNotifier<DrillState> {
   Future<void> selectDrumLoop(DrumLoop loop) async {
     await _audioEngine.selectDrumLoop(loop);
     state = state.copyWith(currentDrumLoop: loop);
+  }
+
+  /// 设置元素切换拍数
+  Future<void> setBeatsPerSwitch(int beats) async {
+    _audioEngine.setBeatsPerSwitch(beats);
+    state = state.copyWith(beatsPerSwitch: beats);
+
+    // 如果正在播放，重新启动计时器以应用新设置
+    if (_isPlaying) {
+      _startElementCycle();
+    }
   }
 
   /// 暂停训练

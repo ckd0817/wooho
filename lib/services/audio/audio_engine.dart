@@ -15,6 +15,7 @@ class AudioEngine {
   bool _isInitialized = false;
   bool _isPlaying = false;
   int _currentBpm = AppConstants.defaultBpm;
+  int _beatsPerSwitch = 8; // 默认 8 拍切换一次元素
   DrumLoop? _currentDrumLoop;
   List<DrumLoop> _availableLoops = [];
 
@@ -166,11 +167,19 @@ class AudioEngine {
     _isPlaying = false;
   }
 
+  /// 设置元素切换拍数
+  void setBeatsPerSwitch(int beats) {
+    _beatsPerSwitch = beats;
+  }
+
+  /// 获取当前元素切换拍数
+  int get beatsPerSwitch => _beatsPerSwitch;
+
   /// 获取每个元素的时长 (毫秒)
-  /// 基于当前 BPM 计算 8 拍的时长
+  /// 基于当前 BPM 和切换拍数计算
   int getElementDurationMs() {
-    // 8 拍时长 (毫秒) = 8 * 60 * 1000 / BPM
-    return AppConstants.beatsPerMove * 60 * 1000 ~/ _currentBpm;
+    // N 拍时长 (毫秒) = N * 60 * 1000 / BPM
+    return _beatsPerSwitch * 60 * 1000 ~/ _currentBpm;
   }
 
   /// 获取预告时长 (毫秒)

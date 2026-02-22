@@ -4,10 +4,12 @@ import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/app_constants.dart';
+import '../../../core/constants/training_constants.dart';
 import '../../../data/models/dance_element.dart';
 import '../../../data/models/drum_loop.dart';
 import '../../../data/repositories/dance_element_repository.dart';
 import '../../providers/drill_provider.dart';
+import '../../providers/training_settings_provider.dart';
 
 /// 串联训练页面
 class DrillPage extends ConsumerStatefulWidget {
@@ -166,6 +168,7 @@ class _DrillPageState extends ConsumerState<DrillPage> {
               _BeatIndicator(
                 currentBeat: currentBeat,
                 isPlaying: state.isPlaying,
+                beatsPerSwitch: state.beatsPerSwitch,
               ),
 
             const SizedBox(height: 32),
@@ -247,6 +250,11 @@ class _DrillPageState extends ConsumerState<DrillPage> {
               padding: const EdgeInsets.only(bottom: 16),
               child: _buildAudioSelector(state),
             ),
+
+          // 元素切换拍数选择器
+          _buildBeatsPerSwitchSelector(state),
+
+          const SizedBox(height: 16),
 
           // BPM 滑块
           Row(
@@ -356,6 +364,60 @@ class _DrillPageState extends ConsumerState<DrillPage> {
           },
         ),
       ),
+    );
+  }
+
+  /// 元素切换拍数选择器
+  Widget _buildBeatsPerSwitchSelector(DrillState state) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          '元素切换时机',
+          style: AppTextStyles.bodySmall.copyWith(
+            color: AppColors.drillTextSecondary,
+          ),
+        ),
+        const SizedBox(height: 8),
+        SizedBox(
+          width: double.infinity,
+          child: SegmentedButton<int>(
+            segments: TrainingConstants.availableBeatsPerSwitch.map((beats) {
+              return ButtonSegment<int>(
+                value: beats,
+                label: Text(
+                  TrainingConstants.beatsPerSwitchLabels[beats] ?? '$beats 拍',
+                  style: AppTextStyles.bodySmall,
+                ),
+              );
+            }).toList(),
+            selected: {state.beatsPerSwitch},
+            onSelectionChanged: (Set<int> selection) {
+              final newBeats = selection.first;
+              ref.read(drillProvider.notifier).setBeatsPerSwitch(newBeats);
+              // 同时保存到设置
+              ref.read(trainingSettingsProvider.notifier).setBeatsPerSwitch(newBeats);
+            },
+            style: ButtonStyle(
+              backgroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.primary;
+                }
+                return AppColors.surface.withOpacity(0.3);
+              }),
+              foregroundColor: WidgetStateProperty.resolveWith((states) {
+                if (states.contains(WidgetState.selected)) {
+                  return AppColors.textPrimary;
+                }
+                return AppColors.drillTextSecondary;
+              }),
+              side: WidgetStateProperty.all(
+                BorderSide(color: AppColors.surfaceLight),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
@@ -514,28 +576,55 @@ class _ControlButton extends StatelessWidget {
 class _BeatIndicator extends StatelessWidget {
   final int currentBeat;
   final bool isPlaying;
+  final int beatsPerSwitch;
 
   const _BeatIndicator({
     required this.currentBeat,
     required this.isPlaying,
+    required this.beatsPerSwitch,
   });
 
   @override
   Widget build(BuildContext context) {
+    // 根据拍数调整圆圈大小和间距
+    final circleSize = beatsPerSwitch > 8 ? 28.0 : 36.0;
+    final horizontalMargin = beatsPerSwitch > 8 ? 3.0 : 4.0;
+    final fontSize = beatsPerSwitch > 8 ? 11.0 : null;
+
+    // 如果拍数超过8，分成两排显示
+    if (beatsPerSwitch > 8) {
+      final firstHalf = beatsPerSwitch ~/ 2;
+      final secondHalf = beatsPerSwitch - firstHalf;
+
+      return Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          _buildRow(0, firstHalf, circleSize, horizontalMargin, fontSize),
+          const SizedBox(height: 8),
+          _buildRow(firstHalf, secondHalf, circleSize, horizontalMargin, fontSize),
+        ],
+      );
+    }
+
+    return _buildRow(0, beatsPerSwitch, circleSize, horizontalMargin, fontSize);
+  }
+
+  Widget _buildRow(int startIndex, int count, double circleSize, double horizontalMargin, double? fontSize) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
-      children: List.generate(8, (index) {
+      children: List.generate(count, (i) {
+        final index = startIndex + i;
         final isActive = index == currentBeat && isPlaying;
         final isPast = isPlaying && index < currentBeat;
 
         return AnimatedContainer(
           duration: const Duration(milliseconds: 100),
           curve: Curves.easeOut,
-          margin: const EdgeInsets.symmetric(horizontal: 4),
+          margin: EdgeInsets.symmetric(horizontal: horizontalMargin),
           transform: Matrix4.translationValues(0, isActive ? -8 : 0, 0),
           child: Container(
-            width: 36,
-            height: 36,
+            width: circleSize,
+            height: circleSize,
             decoration: BoxDecoration(
               shape: BoxShape.circle,
               color: isActive
@@ -558,6 +647,7 @@ class _BeatIndicator extends StatelessWidget {
                       ? AppColors.textPrimary
                       : AppColors.drillTextSecondary,
                   fontWeight: isActive ? FontWeight.bold : FontWeight.normal,
+                  fontSize: fontSize,
                 ),
               ),
             ),

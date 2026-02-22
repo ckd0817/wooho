@@ -52,7 +52,7 @@ class _LibraryPageState extends ConsumerState<LibraryPage>
           unselectedLabelStyle: AppTextStyles.body,
           tabs: const [
             Tab(text: '我的元素库'),
-            Tab(text: '官方元素库'),
+            Tab(text: '预置元素库'),
           ],
         ),
       ),

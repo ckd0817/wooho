@@ -6,7 +6,7 @@ import '../../providers/user_elements_provider.dart';
 import '../../providers/dance_elements_provider.dart';
 import '../../widgets/add_move_dialog.dart';
 
-/// 官方元素库 Tab
+/// 预置元素库 Tab
 class OfficialLibraryTab extends ConsumerStatefulWidget {
   const OfficialLibraryTab({super.key});
 

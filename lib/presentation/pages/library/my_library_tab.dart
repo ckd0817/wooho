@@ -118,7 +118,7 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
           ),
           const SizedBox(height: 8),
           Text(
-            '从官方元素库快速添加，或自定义创建',
+            '从预置元素库快速添加，或自定义创建',
             style: AppTextStyles.bodySmall.copyWith(
               color: AppColors.textHint,
             ),
@@ -129,7 +129,7 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
             children: [
               TextButton.icon(
                 onPressed: () {
-                  // 切换到官方元素库 Tab
+                  // 切换到预置元素库 Tab
                   DefaultTabController.of(context).animateTo(1);
                 },
                 icon: const Icon(Icons.explore_outlined),

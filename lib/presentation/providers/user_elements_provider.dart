@@ -81,7 +81,7 @@ class DanceElementsNotifier extends StateNotifier<AsyncValue<void>> {
     );
   }
 
-  /// 从官方元素库快速添加到个人库
+  /// 从预置元素库快速添加到个人库
   Future<bool> quickAddFromOfficial(
     String categoryName,
     String elementName,

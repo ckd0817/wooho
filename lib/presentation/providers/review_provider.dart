@@ -68,12 +68,32 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
     this._ref,
   ) : super(const AsyncValue.data(ReviewState()));
 
-  /// 加载训练元素（按优先级排序，选取前 N 个）
-  Future<void> loadTrainingElements({int count = 10}) async {
+  /// 加载训练元素（使用统一的队列顺序）
+  Future<void> loadTrainingElements({
+    int count = 10,
+    List<String>? queueOrder,
+  }) async {
+    // 先重置为初始状态，清除旧的训练数据
+    state = const AsyncValue.data(ReviewState());
     state = const AsyncValue.loading();
     state = await AsyncValue.guard(() async {
-      final elements = await _elementRepository.getTrainingElements(count: count);
-      return ReviewState(trainingElements: elements);
+      if (queueOrder != null && queueOrder.isNotEmpty) {
+        // 从队列中取前 N 个元素
+        final allElements = await _elementRepository.getAllElements();
+        final elementMap = {for (var e in allElements) e.id: e};
+
+        final elements = queueOrder
+            .take(count)
+            .map((id) => elementMap[id])
+            .whereType<DanceElement>()
+            .toList();
+
+        return ReviewState(trainingElements: elements);
+      } else {
+        // 如果没有队列顺序，按优先级排序获取
+        final elements = await _elementRepository.getTrainingElements(count: count);
+        return ReviewState(trainingElements: elements);
+      }
     });
   }
 
@@ -136,6 +156,11 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
     return currentState.trainingElements
         .where((element) => currentState.completedIds.contains(element.id))
         .toList();
+  }
+
+  /// 重置训练状态
+  void reset() {
+    state = const AsyncValue.data(ReviewState());
   }
 }
 

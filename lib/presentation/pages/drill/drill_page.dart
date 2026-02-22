@@ -10,6 +10,7 @@ import '../../../data/models/drum_loop.dart';
 import '../../../data/repositories/dance_element_repository.dart';
 import '../../providers/drill_provider.dart';
 import '../../providers/training_settings_provider.dart';
+import 'drill_complete_page.dart';
 
 /// 串联训练页面
 class DrillPage extends ConsumerStatefulWidget {
@@ -442,68 +443,14 @@ class _DrillPageState extends ConsumerState<DrillPage> {
   void _showCompleteDialog(BuildContext context, DrillState state) {
     ref.read(drillProvider.notifier).pauseDrill();
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (context) => Dialog(
-        backgroundColor: AppColors.surface,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(
-                Icons.check_circle,
-                size: 64,
-                color: AppColors.success,
-              ),
-              const SizedBox(height: 16),
-              Text(
-                '练习完成!',
-                style: AppTextStyles.heading1.copyWith(
-                  color: AppColors.textPrimary,
-                ),
-              ),
-              const SizedBox(height: 8),
-              Text(
-                '已完成 ${widget.elementIds.length} 个元素的练习',
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () {
-                    ref.read(drillProvider.notifier).stopDrill();
-                    Navigator.of(context).pop(); // 关闭对话框
-                    // 返回到首页（跳过 review_page）
-                    Navigator.of(context).popUntil((route) => route.isFirst);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: AppColors.primary,
-                    foregroundColor: AppColors.textPrimary,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text('返回首页'),
-                ),
-              ),
-              const SizedBox(height: 8),
-              TextButton(
-                onPressed: () {
-                  Navigator.of(context).pop(); // 关闭对话框，继续训练
-                  ref.read(drillProvider.notifier).resumeDrill();
-                },
-                child: const Text('继续训练'),
-              ),
-            ],
-          ),
-        ),
+    // 获取当前串联顺序的元素
+    final elements = state.queue;
+
+    // 导航到完成页面
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (context) => DrillCompletePage(elements: elements),
+        fullscreenDialog: true,
       ),
     );
   }

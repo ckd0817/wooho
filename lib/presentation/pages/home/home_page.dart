@@ -26,64 +26,60 @@ final todayRoutineReviewProvider = FutureProvider<int>((ref) async {
   return await dao.getTodayReviewCount();
 });
 
-/// 首页待训练元素队列 Provider
+/// 首页待训练元素队列 Provider（显示所有元素）
 final homeElementQueueProvider = FutureProvider<List<DanceElement>>((ref) async {
   final settings = ref.watch(trainingSettingsProvider);
   final dao = DanceElementDao();
+  final allElements = await dao.getAll();
+  final elementMap = {for (var e in allElements) e.id: e};
 
   if (settings.customElementOrder.isNotEmpty) {
-    final allElements = await dao.getAll();
-    final orderedElements = <DanceElement>[];
-    for (final id in settings.customElementOrder) {
-      final element = allElements.where((e) => e.id == id).firstOrNull;
-      if (element != null) {
-        orderedElements.add(element);
-      }
-    }
-    if (orderedElements.length < settings.elementCount) {
-      final remaining = await dao.getElementsForTraining(
-        count: settings.elementCount - orderedElements.length,
-      );
-      for (final element in remaining) {
-        if (!orderedElements.any((e) => e.id == element.id)) {
-          orderedElements.add(element);
-        }
-      }
-    }
-    return orderedElements.take(settings.elementCount).toList();
+    // 按用户设置的完整顺序返回
+    return settings.customElementOrder
+        .map((id) => elementMap[id])
+        .whereType<DanceElement>()
+        .toList();
   }
 
-  return await dao.getElementsForTraining(count: settings.elementCount);
+  // 按 SRS 算法排序（优先级）
+  final orderedElements = await dao.getAllOrderedByPriority();
+  // 缓存顺序到 customElementOrder
+  if (orderedElements.isNotEmpty) {
+    Future.microtask(() {
+      ref.read(trainingSettingsProvider.notifier).setCustomElementOrder(
+        orderedElements.map((e) => e.id).toList(),
+      );
+    });
+  }
+  return orderedElements;
 });
 
-/// 首页待训练舞段队列 Provider
+/// 首页待训练舞段队列 Provider（显示所有舞段）
 final homeRoutineQueueProvider = FutureProvider<List<DanceRoutine>>((ref) async {
   final settings = ref.watch(trainingSettingsProvider);
   final dao = DanceRoutineDao();
+  final allRoutines = await dao.getAll();
+  final routineMap = {for (var r in allRoutines) r.id: r};
 
   if (settings.customRoutineOrder.isNotEmpty) {
-    final allRoutines = await dao.getAll();
-    final orderedRoutines = <DanceRoutine>[];
-    for (final id in settings.customRoutineOrder) {
-      final routine = allRoutines.where((r) => r.id == id).firstOrNull;
-      if (routine != null) {
-        orderedRoutines.add(routine);
-      }
-    }
-    if (orderedRoutines.length < settings.routineCount) {
-      final remaining = await dao.getRoutinesForTraining(
-        count: settings.routineCount - orderedRoutines.length,
-      );
-      for (final routine in remaining) {
-        if (!orderedRoutines.any((r) => r.id == routine.id)) {
-          orderedRoutines.add(routine);
-        }
-      }
-    }
-    return orderedRoutines.take(settings.routineCount).toList();
+    // 按用户设置的完整顺序返回
+    return settings.customRoutineOrder
+        .map((id) => routineMap[id])
+        .whereType<DanceRoutine>()
+        .toList();
   }
 
-  return await dao.getRoutinesForTraining(count: settings.routineCount);
+  // 按 SRS 算法排序（优先级）
+  final orderedRoutines = await dao.getAllOrderedByPriority();
+  // 缓存顺序到 customRoutineOrder
+  if (orderedRoutines.isNotEmpty) {
+    Future.microtask(() {
+      ref.read(trainingSettingsProvider.notifier).setCustomRoutineOrder(
+        orderedRoutines.map((r) => r.id).toList(),
+      );
+    });
+  }
+  return orderedRoutines;
 });
 
 /// 首页
@@ -301,7 +297,7 @@ class HomePage extends ConsumerWidget {
                   child: _QuickActionCard(
                     icon: Icons.playlist_play,
                     title: '训练队列',
-                    onTap: () => _showTrainingQueueModal(context),
+                    onTap: () => context.push('/settings/training'),
                   ),
                 ),
                 const Expanded(child: SizedBox()),

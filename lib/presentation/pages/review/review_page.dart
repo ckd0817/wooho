@@ -30,7 +30,12 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     super.initState();
     Future.microtask(() {
       final settings = ref.read(trainingSettingsProvider);
-      ref.read(reviewProvider.notifier).loadTrainingElements(count: settings.elementCount);
+      ref.read(reviewProvider.notifier).loadTrainingElements(
+        count: settings.elementCount,
+        queueOrder: settings.customElementOrder.isNotEmpty
+            ? settings.customElementOrder
+            : null,
+      );
     });
   }
 

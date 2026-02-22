@@ -7,30 +7,31 @@ import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../data/models/dance_element.dart';
+import '../../../data/models/dance_routine.dart';
 import '../../../domain/services/srs_algorithm_service.dart';
-import '../../providers/review_provider.dart';
+import '../../providers/routine_review_provider.dart';
 import '../../providers/training_settings_provider.dart';
 
-/// 复习页面
-class ReviewPage extends ConsumerStatefulWidget {
-  const ReviewPage({super.key});
+/// 舞段训练页面
+class RoutineReviewPage extends ConsumerStatefulWidget {
+  const RoutineReviewPage({super.key});
 
   @override
-  ConsumerState<ReviewPage> createState() => _ReviewPageState();
+  ConsumerState<RoutineReviewPage> createState() => _RoutineReviewPageState();
 }
 
-class _ReviewPageState extends ConsumerState<ReviewPage> {
+class _RoutineReviewPageState extends ConsumerState<RoutineReviewPage> {
   VideoPlayerController? _videoController;
   bool _isVideoLoading = false;
   bool _hasNoVideo = false;
-  String? _loadedElementId; // 记录已加载的元素 ID
+  String? _loadedRoutineId; // 记录已加载的舞段 ID
 
   @override
   void initState() {
     super.initState();
     Future.microtask(() {
       final settings = ref.read(trainingSettingsProvider);
-      ref.read(reviewProvider.notifier).loadTrainingElements(count: settings.elementCount);
+      ref.read(routineReviewProvider.notifier).loadTrainingRoutines(count: settings.routineCount);
     });
   }
 
@@ -42,15 +43,15 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
   @override
   Widget build(BuildContext context) {
-    final reviewState = ref.watch(reviewProvider);
+    final reviewState = ref.watch(routineReviewProvider);
 
     return Scaffold(
       appBar: AppBar(
         title: reviewState.maybeWhen(
           data: (state) => Text(
-            '练习 (${state.completedCount}/${state.totalCount})',
+            '舞段练习 (${state.completedCount}/${state.totalCount})',
           ),
-          orElse: () => const Text('练习'),
+          orElse: () => const Text('舞段练习'),
         ),
         leading: IconButton(
           icon: const Icon(Icons.close),
@@ -65,37 +66,32 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     );
   }
 
-  /// 复习内容
+  /// 训练内容
   Widget _buildReviewContent(
     BuildContext context,
     WidgetRef ref,
-    ReviewState state,
+    RoutineReviewState state,
   ) {
-    // 只有当已完成至少一个元素时，才算真正完成练习
+    // 训练完成，显示完成界面（不进入串联训练）
     if (state.isComplete && state.completedCount > 0) {
-      // 元素练习完成，直接进入串联训练
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _startDrill(context, ref);
-      });
-      // 显示加载中
-      return const Center(child: CircularProgressIndicator());
+      return _buildCompleteContent(context, state);
     }
 
-    final currentElement = state.currentElement;
-    if (currentElement == null) {
-      // 没有可练习的元素
+    final currentRoutine = state.currentRoutine;
+    if (currentRoutine == null) {
+      // 没有可练习的舞段
       return Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
             Icon(
-              Icons.library_music_outlined,
+              Icons.music_note_outlined,
               size: 64,
               color: AppColors.textHint,
             ),
             const SizedBox(height: 16),
             Text(
-              '暂无可练习的元素',
+              '暂无可练习的舞段',
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textHint,
               ),
@@ -103,16 +99,16 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             const SizedBox(height: 24),
             ElevatedButton(
               onPressed: () => context.pop(),
-              child: const Text('返回首页'),
+              child: const Text('返回舞段库'),
             ),
           ],
         ),
       );
     }
 
-    // 只在元素变化时才加载视频
-    if (_loadedElementId != currentElement.id) {
-      _loadVideo(currentElement);
+    // 只在舞段变化时才加载视频
+    if (_loadedRoutineId != currentRoutine.id) {
+      _loadVideo(currentRoutine);
     }
 
     return Column(
@@ -126,16 +122,16 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
         // 视频区域
         Expanded(
-          child: _buildVideoPlayer(currentElement),
+          child: _buildVideoPlayer(currentRoutine),
         ),
 
-        // 元素名称和分类
+        // 舞段名称和分类
         Container(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Text(
-                currentElement.name,
+                currentRoutine.name,
                 style: AppTextStyles.heading2.copyWith(
                   color: AppColors.textPrimary,
                 ),
@@ -143,11 +139,21 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
               ),
               const SizedBox(height: 4),
               Text(
-                currentElement.category,
+                currentRoutine.category,
                 style: AppTextStyles.bodySmall.copyWith(
                   color: AppColors.textHint,
                 ),
               ),
+              if (currentRoutine.notes != null && currentRoutine.notes!.isNotEmpty) ...[
+                const SizedBox(height: 8),
+                Text(
+                  currentRoutine.notes!,
+                  style: AppTextStyles.bodySmall.copyWith(
+                    color: AppColors.textSecondary,
+                  ),
+                  textAlign: TextAlign.center,
+                ),
+              ],
             ],
           ),
         ),
@@ -160,13 +166,61 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     );
   }
 
+  /// 训练完成界面
+  Widget _buildCompleteContent(BuildContext context, RoutineReviewState state) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              Icons.check_circle_outline,
+              size: 80,
+              color: AppColors.success,
+            ),
+            const SizedBox(height: 24),
+            Text(
+              '练习完成！',
+              style: AppTextStyles.heading1.copyWith(
+                color: AppColors.textPrimary,
+              ),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              '本次练习了 ${state.completedCount} 个舞段',
+              style: AppTextStyles.body.copyWith(
+                color: AppColors.textSecondary,
+              ),
+            ),
+            const SizedBox(height: 32),
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => context.pop(),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: AppColors.primary,
+                  foregroundColor: AppColors.textPrimary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: const Text('返回舞段库'),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
   /// 视频播放器
-  Widget _buildVideoPlayer(DanceElement element) {
+  Widget _buildVideoPlayer(DanceRoutine currentRoutine) {
     if (_isVideoLoading) {
       return const Center(child: CircularProgressIndicator());
     }
 
-    // 无视频时显示提示
     if (_hasNoVideo) {
       return Center(
         child: Column(
@@ -179,7 +233,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
             ),
             const SizedBox(height: 16),
             Text(
-              '此元素暂无视频',
+              '此舞段暂无视频',
               style: AppTextStyles.body.copyWith(
                 color: AppColors.textHint,
               ),
@@ -257,14 +311,13 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   }
 
   /// 加载视频
-  Future<void> _loadVideo(DanceElement element) async {
-    // 如果已经在加载这个元素，跳过
-    if (_loadedElementId == element.id && _isVideoLoading) return;
+  Future<void> _loadVideo(DanceRoutine currentRoutine) async {
+    // 如果已经在加载这个舞段，跳过
+    if (_loadedRoutineId == currentRoutine.id && _isVideoLoading) return;
 
-    // 标记正在加载这个元素
-    _loadedElementId = element.id;
+    // 标记正在加载这个舞段
+    _loadedRoutineId = currentRoutine.id;
 
-    // 先释放旧的视频控制器，避免显示上一个元素的视频
     if (_videoController != null) {
       await _videoController!.dispose();
       _videoController = null;
@@ -272,8 +325,7 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
     if (!mounted) return;
 
-    // 如果没有视频源，直接返回
-    if (element.videoSourceType == VideoSourceType.none) {
+    if (currentRoutine.videoSourceType == VideoSourceType.none) {
       setState(() {
         _hasNoVideo = true;
         _isVideoLoading = false;
@@ -284,31 +336,29 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     setState(() => _isVideoLoading = true);
 
     try {
-      switch (element.videoSourceType) {
+      switch (currentRoutine.videoSourceType) {
         case VideoSourceType.localGallery:
-          _videoController = VideoPlayerController.file(File(element.videoUri));
+          _videoController = VideoPlayerController.file(File(currentRoutine.videoUri));
           break;
         case VideoSourceType.bundledAsset:
-          _videoController = VideoPlayerController.asset(element.videoUri);
+          _videoController = VideoPlayerController.asset(currentRoutine.videoUri);
           break;
         case VideoSourceType.webUrl:
-          _videoController = VideoPlayerController.networkUrl(Uri.parse(element.videoUri));
+          _videoController = VideoPlayerController.networkUrl(Uri.parse(currentRoutine.videoUri));
           break;
         case VideoSourceType.none:
           return;
       }
       await _videoController!.initialize();
 
-      // 设置播放区间
       _videoController!.addListener(() {
-        if (_videoController!.value.position.inMilliseconds >= element.trimEnd) {
-          _videoController!.seekTo(Duration(milliseconds: element.trimStart));
+        if (_videoController!.value.position.inMilliseconds >= currentRoutine.trimEnd) {
+          _videoController!.seekTo(Duration(milliseconds: currentRoutine.trimStart));
         }
       });
 
-      // 循环播放
       _videoController!.setLooping(true);
-      await _videoController!.seekTo(Duration(milliseconds: element.trimStart));
+      await _videoController!.seekTo(Duration(milliseconds: currentRoutine.trimStart));
       await _videoController!.play();
 
       if (mounted) {
@@ -331,29 +381,18 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
     WidgetRef ref,
     FeedbackType feedback,
   ) async {
-    // 释放当前视频
     await _videoController?.dispose();
 
-    // 重置视频状态
     if (mounted) {
       setState(() {
         _videoController = null;
         _hasNoVideo = false;
         _isVideoLoading = false;
-        _loadedElementId = null; // 重置已加载的元素 ID
+        _loadedRoutineId = null; // 重置已加载的舞段 ID
       });
     }
 
-    // 提交评分
-    await ref.read(reviewProvider.notifier).submitFeedback(feedback);
-  }
-
-  /// 开始串联训练
-  void _startDrill(BuildContext context, WidgetRef ref) {
-    final completedElements =
-        ref.read(reviewProvider.notifier).getCompletedElements();
-    final elementIds = completedElements.map((e) => e.id).toList();
-    context.push('/drill', extra: elementIds);
+    await ref.read(routineReviewProvider.notifier).submitFeedback(feedback);
   }
 
   /// 确认退出

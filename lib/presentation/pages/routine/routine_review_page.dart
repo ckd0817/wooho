@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/training_constants.dart';
 import '../../../data/models/dance_element.dart';
 import '../../../data/models/dance_routine.dart';
 import '../../../domain/services/srs_algorithm_service.dart';
@@ -26,19 +27,32 @@ class _RoutineReviewPageState extends ConsumerState<RoutineReviewPage> {
   bool _isVideoLoading = false;
   bool _hasNoVideo = false;
   String? _loadedRoutineId; // 记录已加载的舞段 ID
+  bool _hasLoadedTrainingRoutines = false; // 是否已加载训练舞段
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      final settings = ref.read(trainingSettingsProvider);
-      ref.read(routineReviewProvider.notifier).loadTrainingRoutines(
-        count: settings.routineCount,
-        customOrder: settings.customRoutineOrder.isNotEmpty
-            ? settings.customRoutineOrder
-            : null,
-      );
-    });
+  }
+
+  /// 加载训练舞段（延迟执行，避免在 build 中修改状态）
+  void _loadTrainingRoutinesIfNeeded(TrainingSettings settings) {
+    if (_hasLoadedTrainingRoutines) return;
+
+    final hasCustomOrder = settings.customRoutineOrder.isNotEmpty;
+    final isNotDefault = settings.routineCount != TrainingConstants.defaultRoutineCount;
+
+    if (isNotDefault || hasCustomOrder) {
+      _hasLoadedTrainingRoutines = true;
+      // 使用 addPostFrameCallback 延迟到下一帧执行，避免在 build 中修改状态
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(routineReviewProvider.notifier).loadTrainingRoutines(
+          count: settings.routineCount,
+          customOrder: settings.customRoutineOrder.isNotEmpty
+              ? settings.customRoutineOrder
+              : null,
+        );
+      });
+    }
   }
 
   @override
@@ -49,6 +63,17 @@ class _RoutineReviewPageState extends ConsumerState<RoutineReviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 在 build 中监听设置变化
+    final settings = ref.watch(trainingSettingsProvider);
+    // 使用 listen 检测设置变化（只能在 build 中使用）
+    ref.listen<TrainingSettings>(trainingSettingsProvider, (previous, next) {
+      if (!_hasLoadedTrainingRoutines) {
+        _loadTrainingRoutinesIfNeeded(next);
+      }
+    });
+    // 首次检查
+    _loadTrainingRoutinesIfNeeded(settings);
+
     final reviewState = ref.watch(routineReviewProvider);
 
     return Scaffold(

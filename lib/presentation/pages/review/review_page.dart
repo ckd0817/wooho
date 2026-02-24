@@ -6,6 +6,7 @@ import 'package:go_router/go_router.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../core/constants/training_constants.dart';
 import '../../../data/models/dance_element.dart';
 import '../../../domain/services/srs_algorithm_service.dart';
 import '../../providers/review_provider.dart';
@@ -24,19 +25,32 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
   bool _isVideoLoading = false;
   bool _hasNoVideo = false;
   String? _loadedElementId; // 记录已加载的元素 ID
+  bool _hasLoadedTrainingElements = false; // 是否已加载训练元素
 
   @override
   void initState() {
     super.initState();
-    Future.microtask(() {
-      final settings = ref.read(trainingSettingsProvider);
-      ref.read(reviewProvider.notifier).loadTrainingElements(
-        count: settings.elementCount,
-        queueOrder: settings.customElementOrder.isNotEmpty
-            ? settings.customElementOrder
-            : null,
-      );
-    });
+  }
+
+  /// 加载训练元素（延迟执行，避免在 build 中修改状态）
+  void _loadTrainingElementsIfNeeded(TrainingSettings settings) {
+    if (_hasLoadedTrainingElements) return;
+
+    final hasCustomOrder = settings.customElementOrder.isNotEmpty;
+    final isNotDefault = settings.elementCount != TrainingConstants.defaultElementCount;
+
+    if (isNotDefault || hasCustomOrder) {
+      _hasLoadedTrainingElements = true;
+      // 使用 addPostFrameCallback 延迟到下一帧执行，避免在 build 中修改状态
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        ref.read(reviewProvider.notifier).loadTrainingElements(
+          count: settings.elementCount,
+          queueOrder: settings.customElementOrder.isNotEmpty
+              ? settings.customElementOrder
+              : null,
+        );
+      });
+    }
   }
 
   @override
@@ -47,6 +61,17 @@ class _ReviewPageState extends ConsumerState<ReviewPage> {
 
   @override
   Widget build(BuildContext context) {
+    // 在 build 中监听设置变化
+    final settings = ref.watch(trainingSettingsProvider);
+    // 使用 listen 检测设置变化（只能在 build 中使用）
+    ref.listen<TrainingSettings>(trainingSettingsProvider, (previous, next) {
+      if (!_hasLoadedTrainingElements) {
+        _loadTrainingElementsIfNeeded(next);
+      }
+    });
+    // 首次检查
+    _loadTrainingElementsIfNeeded(settings);
+
     final reviewState = ref.watch(reviewProvider);
 
     return Scaffold(

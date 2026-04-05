@@ -25,6 +25,11 @@ class DanceElementRepository {
     return await _dao.getElementsForTraining(count: count);
   }
 
+  /// 获取所有元素（按优先级排序）
+  Future<List<DanceElement>> getAllElementsOrderedByPriority() async {
+    return await _dao.getAllOrderedByPriority();
+  }
+
   /// 根据 ID 获取元素
   Future<DanceElement?> getElementById(String id) async {
     return await _dao.getById(id);
@@ -46,8 +51,8 @@ class DanceElementRepository {
   }
 
   /// 删除元素
-  Future<void> deleteElement(String id) async {
-    await _dao.delete(id);
+  Future<int> deleteElement(String id) async {
+    return await _dao.delete(id);
   }
 
   /// 获取元素总数

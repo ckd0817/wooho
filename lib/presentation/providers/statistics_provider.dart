@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../../data/repositories/review_repository.dart';
+import 'user_elements_provider.dart';
 
 /// 统计数据模型
 class StatisticsData {
@@ -32,7 +32,8 @@ class StatisticsData {
 
 /// 统计 Provider
 final statisticsProvider = FutureProvider<StatisticsData>((ref) async {
-  final repository = ReviewRepository();
+  ref.watch(elementDataVersionProvider);
+  final repository = ref.watch(reviewRepositoryProvider);
 
   final weekReviewCount = await repository.getWeekReviewCount();
   final streakDays = await repository.getStreakDays();
@@ -45,12 +46,14 @@ final statisticsProvider = FutureProvider<StatisticsData>((ref) async {
 
 /// 本周复习次数 Provider
 final weekReviewCountProvider = FutureProvider<int>((ref) async {
-  final repository = ReviewRepository();
+  ref.watch(elementDataVersionProvider);
+  final repository = ref.watch(reviewRepositoryProvider);
   return await repository.getWeekReviewCount();
 });
 
 /// 连续打卡天数 Provider
 final streakDaysProvider = FutureProvider<int>((ref) async {
-  final repository = ReviewRepository();
+  ref.watch(elementDataVersionProvider);
+  final repository = ref.watch(reviewRepositoryProvider);
   return await repository.getStreakDays();
 });

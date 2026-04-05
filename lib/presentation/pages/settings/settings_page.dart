@@ -12,7 +12,6 @@ class SettingsPage extends ConsumerStatefulWidget {
 }
 
 class _SettingsPageState extends ConsumerState<SettingsPage> {
-  double _bgmVolume = 0.7;
   bool _enableBackgroundPlay = true;
 
   @override
@@ -24,19 +23,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          // 音频设置
-          _buildSectionHeader('音频设置'),
-          _buildSettingsCard([
-            _buildSliderSetting(
-              icon: Icons.music_note_outlined,
-              title: '背景音乐音量',
-              value: _bgmVolume,
-              onChanged: (value) => setState(() => _bgmVolume = value),
-            ),
-          ]),
-
-          const SizedBox(height: 24),
-
           // 训练设置
           _buildSectionHeader('训练设置'),
           _buildSettingsCard([
@@ -136,63 +122,6 @@ class _SettingsPageState extends ConsumerState<SettingsPage> {
       height: 1,
       indent: 56,
       color: AppColors.surfaceLight,
-    );
-  }
-
-  /// 构建滑动设置项
-  Widget _buildSliderSetting({
-    required IconData icon,
-    required String title,
-    required double value,
-    String? label,
-    double min = 0.0,
-    double max = 1.0,
-    required ValueChanged<double> onChanged,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      child: Row(
-        children: [
-          Icon(icon, color: AppColors.textSecondary, size: 24),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(title, style: AppTextStyles.body),
-                const SizedBox(height: 8),
-                SliderTheme(
-                  data: SliderTheme.of(context).copyWith(
-                    trackHeight: 4,
-                    thumbShape: const RoundSliderThumbShape(
-                      enabledThumbRadius: 8,
-                    ),
-                  ),
-                  child: Slider(
-                    value: value.clamp(min, max),
-                    min: min,
-                    max: max,
-                    onChanged: onChanged,
-                    activeColor: AppColors.primary,
-                    inactiveColor: AppColors.surfaceLight,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (label != null)
-            SizedBox(
-              width: 50,
-              child: Text(
-                label,
-                style: AppTextStyles.body.copyWith(
-                  color: AppColors.textSecondary,
-                ),
-                textAlign: TextAlign.right,
-              ),
-            ),
-        ],
-      ),
     );
   }
 

@@ -45,27 +45,38 @@ class TrainingSettingsNotifier extends StateNotifier<TrainingSettings> {
   Future<void> _loadSettings() async {
     final prefs = await SharedPreferences.getInstance();
 
-    final elementCount = prefs.getInt(TrainingConstants.keyElementCount) ??
+    final elementCount =
+        prefs.getInt(TrainingConstants.keyElementCount) ??
         TrainingConstants.defaultElementCount;
-    final routineCount = prefs.getInt(TrainingConstants.keyRoutineCount) ??
+    final routineCount =
+        prefs.getInt(TrainingConstants.keyRoutineCount) ??
         TrainingConstants.defaultRoutineCount;
-    final customElementOrderJson =
-        prefs.getString(TrainingConstants.keyCustomElementOrder);
-    final customRoutineOrderJson =
-        prefs.getString(TrainingConstants.keyCustomRoutineOrder);
-    final beatsPerSwitch = prefs.getInt(TrainingConstants.keyBeatsPerSwitch) ??
+    final customElementOrderJson = prefs.getString(
+      TrainingConstants.keyCustomElementOrder,
+    );
+    final customRoutineOrderJson = prefs.getString(
+      TrainingConstants.keyCustomRoutineOrder,
+    );
+    final beatsPerSwitch =
+        prefs.getInt(TrainingConstants.keyBeatsPerSwitch) ??
         TrainingConstants.defaultBeatsPerSwitch;
 
     List<String> customElementOrder = [];
     List<String> customRoutineOrder = [];
 
     if (customElementOrderJson != null) {
-      customElementOrder =
-          List<String>.from(json.decode(customElementOrderJson));
+      customElementOrder = List<String>.from(
+        json.decode(customElementOrderJson),
+      );
     }
     if (customRoutineOrderJson != null) {
-      customRoutineOrder =
-          List<String>.from(json.decode(customRoutineOrderJson));
+      customRoutineOrder = List<String>.from(
+        json.decode(customRoutineOrderJson),
+      );
+    }
+
+    if (!mounted) {
+      return;
     }
 
     state = TrainingSettings(
@@ -95,15 +106,31 @@ class TrainingSettingsNotifier extends StateNotifier<TrainingSettings> {
   Future<void> setCustomElementOrder(List<String> order) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        TrainingConstants.keyCustomElementOrder, json.encode(order));
+      TrainingConstants.keyCustomElementOrder,
+      json.encode(order),
+    );
     state = state.copyWith(customElementOrder: order);
+  }
+
+  /// 从自定义元素顺序中移除某个元素
+  Future<void> removeElementFromOrder(String elementId) async {
+    if (!state.customElementOrder.contains(elementId)) {
+      return;
+    }
+
+    final newOrder = state.customElementOrder
+        .where((id) => id != elementId)
+        .toList(growable: false);
+    await setCustomElementOrder(newOrder);
   }
 
   /// 设置自定义舞段顺序
   Future<void> setCustomRoutineOrder(List<String> order) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(
-        TrainingConstants.keyCustomRoutineOrder, json.encode(order));
+      TrainingConstants.keyCustomRoutineOrder,
+      json.encode(order),
+    );
     state = state.copyWith(customRoutineOrder: order);
   }
 
@@ -129,5 +156,5 @@ class TrainingSettingsNotifier extends StateNotifier<TrainingSettings> {
 /// 训练设置 Provider
 final trainingSettingsProvider =
     StateNotifierProvider<TrainingSettingsNotifier, TrainingSettings>(
-  (ref) => TrainingSettingsNotifier(),
-);
+      (ref) => TrainingSettingsNotifier(),
+    );

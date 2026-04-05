@@ -3,46 +3,23 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
 import '../../../core/constants/training_constants.dart';
-import '../../../data/datasources/local/dance_element_dao.dart';
 import '../../../data/datasources/local/dance_routine_dao.dart';
 import '../../../data/models/dance_element.dart';
 import '../../../data/models/dance_routine.dart';
 import '../../providers/training_settings_provider.dart';
+import '../../providers/user_elements_provider.dart';
 
 /// 所有元素队列 Provider（按优先级排序，不限制数量）
-final allElementsQueueProvider = FutureProvider<List<DanceElement>>((ref) async {
-  final settings = ref.watch(trainingSettingsProvider);
-  final dao = DanceElementDao();
-
-  // 如果有自定义顺序，按自定义顺序获取
-  if (settings.customElementOrder.isNotEmpty) {
-    final allElements = await dao.getAllOrderedByPriority();
-    final orderedElements = <DanceElement>[];
-    final addedIds = <String>{};
-
-    // 先按自定义顺序添加
-    for (final id in settings.customElementOrder) {
-      final element = allElements.where((e) => e.id == id).firstOrNull;
-      if (element != null) {
-        orderedElements.add(element);
-        addedIds.add(id);
-      }
-    }
-    // 补充剩余按优先级排序的元素
-    for (final element in allElements) {
-      if (!addedIds.contains(element.id)) {
-        orderedElements.add(element);
-      }
-    }
-    return orderedElements;
-  }
-
-  // 否则按优先级排序
-  return await dao.getAllOrderedByPriority();
+final allElementsQueueProvider = FutureProvider<List<DanceElement>>((
+  ref,
+) async {
+  return await ref.watch(orderedElementsProvider.future);
 });
 
 /// 所有舞段队列 Provider（按优先级排序，不限制数量）
-final allRoutinesQueueProvider = FutureProvider<List<DanceRoutine>>((ref) async {
+final allRoutinesQueueProvider = FutureProvider<List<DanceRoutine>>((
+  ref,
+) async {
   final settings = ref.watch(trainingSettingsProvider);
   final dao = DanceRoutineDao();
 
@@ -104,10 +81,7 @@ class TrainingSettingsPage extends StatelessWidget {
           ),
         ),
         body: const TabBarView(
-          children: [
-            _ElementSettingsTab(),
-            _RoutineSettingsTab(),
-          ],
+          children: [_ElementSettingsTab(), _RoutineSettingsTab()],
         ),
       ),
     );
@@ -129,14 +103,11 @@ class TrainingSettingsPage extends StatelessWidget {
               onPressed: () {
                 ref.read(trainingSettingsProvider.notifier).resetToDefault();
                 Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('已重置为默认设置')),
-                );
+                ScaffoldMessenger.of(
+                  context,
+                ).showSnackBar(const SnackBar(content: Text('已重置为默认设置')));
               },
-              child: Text(
-                '确定',
-                style: TextStyle(color: AppColors.error),
-              ),
+              child: Text('确定', style: TextStyle(color: AppColors.error)),
             ),
           ],
         ),
@@ -179,18 +150,14 @@ class _ElementSettingsTab extends ConsumerWidget {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: AppTextStyles.heading3.copyWith(
-        color: AppColors.textPrimary,
-      ),
+      style: AppTextStyles.heading3.copyWith(color: AppColors.textPrimary),
     );
   }
 
   Widget _buildSubtitle(String subtitle) {
     return Text(
       subtitle,
-      style: AppTextStyles.bodySmall.copyWith(
-        color: AppColors.textSecondary,
-      ),
+      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
     );
   }
 
@@ -232,7 +199,8 @@ class _ElementSettingsTab extends ConsumerWidget {
               value: settings.elementCount.toDouble(),
               min: TrainingConstants.minTrainingCount.toDouble(),
               max: TrainingConstants.maxTrainingCount.toDouble(),
-              divisions: TrainingConstants.maxTrainingCount -
+              divisions:
+                  TrainingConstants.maxTrainingCount -
                   TrainingConstants.minTrainingCount,
               activeColor: AppColors.primary,
               onChanged: (value) {
@@ -271,8 +239,12 @@ class _ElementSettingsTab extends ConsumerWidget {
           },
           onRemove: (element) {
             // 从队列中移除（从自定义顺序中移除）
-            final currentOrder = ref.read(trainingSettingsProvider).customElementOrder;
-            final newOrder = currentOrder.where((id) => id != element.id).toList();
+            final currentOrder = ref
+                .read(trainingSettingsProvider)
+                .customElementOrder;
+            final newOrder = currentOrder
+                .where((id) => id != element.id)
+                .toList();
             ref
                 .read(trainingSettingsProvider.notifier)
                 .setCustomElementOrder(newOrder);
@@ -299,9 +271,7 @@ class _ElementSettingsTab extends ConsumerWidget {
       child: Center(
         child: Text(
           message,
-          style: AppTextStyles.body.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
       ),
     );
@@ -342,18 +312,14 @@ class _RoutineSettingsTab extends ConsumerWidget {
   Widget _buildSectionTitle(String title) {
     return Text(
       title,
-      style: AppTextStyles.heading3.copyWith(
-        color: AppColors.textPrimary,
-      ),
+      style: AppTextStyles.heading3.copyWith(color: AppColors.textPrimary),
     );
   }
 
   Widget _buildSubtitle(String subtitle) {
     return Text(
       subtitle,
-      style: AppTextStyles.bodySmall.copyWith(
-        color: AppColors.textSecondary,
-      ),
+      style: AppTextStyles.bodySmall.copyWith(color: AppColors.textSecondary),
     );
   }
 
@@ -395,7 +361,8 @@ class _RoutineSettingsTab extends ConsumerWidget {
               value: settings.routineCount.toDouble(),
               min: TrainingConstants.minTrainingCount.toDouble(),
               max: TrainingConstants.maxTrainingCount.toDouble(),
-              divisions: TrainingConstants.maxTrainingCount -
+              divisions:
+                  TrainingConstants.maxTrainingCount -
                   TrainingConstants.minTrainingCount,
               activeColor: AppColors.primary,
               onChanged: (value) {
@@ -434,8 +401,12 @@ class _RoutineSettingsTab extends ConsumerWidget {
           },
           onRemove: (routine) {
             // 从队列中移除（从自定义顺序中移除）
-            final currentOrder = ref.read(trainingSettingsProvider).customRoutineOrder;
-            final newOrder = currentOrder.where((id) => id != routine.id).toList();
+            final currentOrder = ref
+                .read(trainingSettingsProvider)
+                .customRoutineOrder;
+            final newOrder = currentOrder
+                .where((id) => id != routine.id)
+                .toList();
             ref
                 .read(trainingSettingsProvider.notifier)
                 .setCustomRoutineOrder(newOrder);
@@ -462,9 +433,7 @@ class _RoutineSettingsTab extends ConsumerWidget {
       child: Center(
         child: Text(
           message,
-          style: AppTextStyles.body.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
       ),
     );
@@ -518,9 +487,7 @@ class _ElementQueueList extends StatelessWidget {
             ),
             title: Text(
               element.name,
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
             ),
             subtitle: Text(
               element.category,
@@ -603,9 +570,7 @@ class _RoutineQueueList extends StatelessWidget {
             ),
             title: Text(
               routine.name,
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textPrimary,
-              ),
+              style: AppTextStyles.body.copyWith(color: AppColors.textPrimary),
             ),
             subtitle: Text(
               routine.category,

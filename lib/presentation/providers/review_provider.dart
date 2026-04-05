@@ -7,11 +7,6 @@ import '../../data/repositories/review_repository.dart';
 import '../../domain/services/srs_algorithm_service.dart';
 import 'user_elements_provider.dart';
 
-/// 复习仓库 Provider
-final reviewRepositoryProvider = Provider<ReviewRepository>((ref) {
-  return ReviewRepository();
-});
-
 /// SRS 算法服务 Provider
 final srsAlgorithmProvider = Provider<SrsAlgorithmService>((ref) {
   return SrsAlgorithmService();
@@ -29,8 +24,9 @@ class ReviewState {
     this.completedIds = const {},
   });
 
-  DanceElement? get currentElement =>
-      currentIndex < trainingElements.length ? trainingElements[currentIndex] : null;
+  DanceElement? get currentElement => currentIndex < trainingElements.length
+      ? trainingElements[currentIndex]
+      : null;
 
   bool get isComplete => currentIndex >= trainingElements.length;
 
@@ -38,8 +34,7 @@ class ReviewState {
 
   int get totalCount => trainingElements.length;
 
-  double get progress =>
-      totalCount > 0 ? completedCount / totalCount : 0.0;
+  double get progress => totalCount > 0 ? completedCount / totalCount : 0.0;
 
   ReviewState copyWith({
     List<DanceElement>? trainingElements,
@@ -91,7 +86,9 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
         return ReviewState(trainingElements: elements);
       } else {
         // 如果没有队列顺序，按优先级排序获取
-        final elements = await _elementRepository.getTrainingElements(count: count);
+        final elements = await _elementRepository.getTrainingElements(
+          count: count,
+        );
         return ReviewState(trainingElements: elements);
       }
     });
@@ -101,17 +98,24 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
   Future<void> submitFeedback(FeedbackType feedback) async {
     final currentState = state.value;
     if (currentState == null || currentState.currentElement == null) {
-      debugPrint('submitFeedback: state.value=$currentState, currentElement=${currentState?.currentElement}');
+      debugPrint(
+        'submitFeedback: state.value=$currentState, currentElement=${currentState?.currentElement}',
+      );
       return;
     }
 
     final element = currentState.currentElement!;
     final previousMastery = element.masteryLevel;
-    final newMastery = _srsAlgorithm.calculateNewMastery(previousMastery, feedback);
+    final newMastery = _srsAlgorithm.calculateNewMastery(
+      previousMastery,
+      feedback,
+    );
     final newStatusString = _srsAlgorithm.getElementStatus(newMastery);
-    final newStatus = newStatusString == 'new' ? ElementStatus.new_ :
-                      newStatusString == 'learning' ? ElementStatus.learning :
-                      ElementStatus.reviewing;
+    final newStatus = newStatusString == 'new'
+        ? ElementStatus.new_
+        : newStatusString == 'learning'
+        ? ElementStatus.learning
+        : ElementStatus.reviewing;
     final now = DateTime.now().millisecondsSinceEpoch;
 
     // 更新元素
@@ -125,27 +129,29 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
     await _elementRepository.updateElement(updatedElement);
 
     // 记录训练历史
-    await _reviewRepository.addRecord(ReviewRecord(
-      elementId: element.id,
-      feedback: feedback.name,
-      reviewedAt: now,
-      previousMastery: previousMastery,
-      newMastery: newMastery,
-    ));
+    await _reviewRepository.addRecord(
+      ReviewRecord(
+        elementId: element.id,
+        feedback: feedback.name,
+        reviewedAt: now,
+        previousMastery: previousMastery,
+        newMastery: newMastery,
+      ),
+    );
 
     // 更新状态
     final newCompletedIds = Set<String>.from(currentState.completedIds);
     newCompletedIds.add(element.id);
 
-    state = AsyncValue.data(currentState.copyWith(
-      currentIndex: currentState.currentIndex + 1,
-      completedIds: newCompletedIds,
-    ));
+    state = AsyncValue.data(
+      currentState.copyWith(
+        currentIndex: currentState.currentIndex + 1,
+        completedIds: newCompletedIds,
+      ),
+    );
 
     // 刷新相关 Providers
-    _ref.invalidate(allElementsProvider);
-    _ref.invalidate(trainingElementsProvider);
-    _ref.invalidate(elementCountProvider);
+    refreshElementProviders(_ref);
   }
 
   /// 获取已完成的元素列表 (用于串联训练)
@@ -167,10 +173,10 @@ class ReviewNotifier extends StateNotifier<AsyncValue<ReviewState>> {
 /// 复习 Provider
 final reviewProvider =
     StateNotifierProvider<ReviewNotifier, AsyncValue<ReviewState>>((ref) {
-  return ReviewNotifier(
-    ref.watch(danceElementRepositoryProvider),
-    ref.watch(reviewRepositoryProvider),
-    ref.watch(srsAlgorithmProvider),
-    ref,
-  );
-});
+      return ReviewNotifier(
+        ref.watch(danceElementRepositoryProvider),
+        ref.watch(reviewRepositoryProvider),
+        ref.watch(srsAlgorithmProvider),
+        ref,
+      );
+    });

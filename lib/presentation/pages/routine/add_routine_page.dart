@@ -1,31 +1,31 @@
 import 'dart:io';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
+import 'package:uuid/uuid.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../data/models/dance_routine.dart';
 import '../../../data/models/dance_element.dart';
-import '../../providers/user_elements_provider.dart';
+import '../../../domain/services/srs_algorithm_service.dart';
+import '../../providers/routine_provider.dart';
 
-/// 编辑元素页面
-class EditElementPage extends ConsumerStatefulWidget {
-  final String elementId;
-
-  const EditElementPage({super.key, required this.elementId});
+/// 添加舞段页面
+class AddRoutinePage extends ConsumerStatefulWidget {
+  const AddRoutinePage({super.key});
 
   @override
-  ConsumerState<EditElementPage> createState() => _EditElementPageState();
+  ConsumerState<AddRoutinePage> createState() => _AddRoutinePageState();
 }
 
-class _EditElementPageState extends ConsumerState<EditElementPage> {
+class _AddRoutinePageState extends ConsumerState<AddRoutinePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _categoryController = TextEditingController();
-  final _urlController = TextEditingController();
+  final _notesController = TextEditingController();
 
   // 视频源选择
   VideoSourceType _videoSourceType = VideoSourceType.none;
@@ -35,86 +35,26 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
   int _trimEnd = 0;
   int _videoDuration = 0;
 
-  // 熟练度
-  int _masteryLevel = 0;
-
+  MasteryLevel _masteryLevel = MasteryLevel.new_;
   bool _isSaving = false;
-  bool _isLoading = true;
-  DanceElement? _originalElement;
-
-  @override
-  void initState() {
-    super.initState();
-    _loadElement();
-  }
 
   @override
   void dispose() {
     _nameController.dispose();
     _categoryController.dispose();
-    _urlController.dispose();
+    _notesController.dispose();
     _videoController?.dispose();
     super.dispose();
   }
 
-  /// 加载元素数据
-  Future<void> _loadElement() async {
-    final element = await ref.read(
-      elementByIdProvider(widget.elementId).future,
-    );
-    if (element != null && mounted) {
-      _originalElement = element;
-      _nameController.text = element.name;
-      _categoryController.text = element.category;
-      _videoSourceType = element.videoSourceType;
-      _trimStart = element.trimStart;
-      _trimEnd = element.trimEnd;
-      _masteryLevel = element.masteryLevel;
-
-      if (element.videoSourceType == VideoSourceType.webUrl) {
-        _urlController.text = element.videoUri;
-      } else if (element.videoSourceType == VideoSourceType.localGallery) {
-        _videoPath = element.videoUri;
-        _loadVideoController(element.videoUri);
-      }
-
-      setState(() => _isLoading = false);
-    } else if (mounted) {
-      setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('元素不存在')));
-      context.pop();
-    }
-  }
-
-  /// 加载视频控制器
-  Future<void> _loadVideoController(String path) async {
-    try {
-      _videoController = VideoPlayerController.file(File(path));
-      await _videoController!.initialize();
-      _videoDuration = _videoController!.value.duration.inMilliseconds;
-      if (mounted) setState(() {});
-    } catch (e) {
-      debugPrint('加载视频失败: $e');
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        appBar: AppBar(title: const Text('编辑元素')),
-        body: const Center(child: CircularProgressIndicator()),
-      );
-    }
-
     return Scaffold(
       appBar: AppBar(
-        title: const Text('编辑元素'),
+        title: const Text('添加舞段'),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _saveElement,
+            onPressed: _isSaving ? null : _saveRoutine,
             child: _isSaving
                 ? const SizedBox(
                     width: 20,
@@ -130,7 +70,7 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // 元素名称
+            // 舞段名称
             _buildNameField(),
             const SizedBox(height: 16),
 
@@ -145,22 +85,20 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
             // 视频选择区域
             if (_videoSourceType == VideoSourceType.localGallery)
               _buildVideoSection(),
-            if (_videoSourceType == VideoSourceType.webUrl) _buildUrlSection(),
-            if (_videoSourceType == VideoSourceType.localGallery &&
-                _videoPath != null)
+            if (_videoSourceType == VideoSourceType.localGallery && _videoPath != null)
               const SizedBox(height: 16),
-            if (_videoSourceType == VideoSourceType.localGallery &&
-                _videoPath != null)
+            if (_videoSourceType == VideoSourceType.localGallery && _videoPath != null)
               _buildTrimSection(),
+            if (_videoSourceType == VideoSourceType.localGallery && _videoPath != null)
+              const SizedBox(height: 24),
+
+            // 初始熟练度
+            _buildMasterySection(),
             const SizedBox(height: 24),
 
-            // 熟练度
-            _buildMasterySection(),
+            // 备注
+            _buildNotesField(),
             const SizedBox(height: 32),
-
-            // 删除按钮
-            _buildDeleteButton(),
-            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -172,12 +110,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     return TextFormField(
       controller: _nameController,
       decoration: const InputDecoration(
-        labelText: '元素名称 *',
-        hintText: '例如: Walk Out',
+        labelText: '舞段名称 *',
+        hintText: '例如: 基础步伐组合',
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return '请输入元素名称';
+          return '请输入舞段名称';
         }
         return null;
       },
@@ -208,7 +146,9 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
       children: [
         Text(
           '视频源',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -218,8 +158,7 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
                 icon: Icons.videocam_off_outlined,
                 label: '无视频',
                 isSelected: _videoSourceType == VideoSourceType.none,
-                onTap: () =>
-                    setState(() => _videoSourceType = VideoSourceType.none),
+                onTap: () => setState(() => _videoSourceType = VideoSourceType.none),
               ),
             ),
             const SizedBox(width: 8),
@@ -228,37 +167,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
                 icon: Icons.video_library_outlined,
                 label: '相册',
                 isSelected: _videoSourceType == VideoSourceType.localGallery,
-                onTap: () => setState(
-                  () => _videoSourceType = VideoSourceType.localGallery,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _VideoSourceOption(
-                icon: Icons.link,
-                label: '链接',
-                isSelected: _videoSourceType == VideoSourceType.webUrl,
-                onTap: () =>
-                    setState(() => _videoSourceType = VideoSourceType.webUrl),
+                onTap: () => setState(() => _videoSourceType = VideoSourceType.localGallery),
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  /// URL 输入区域
-  Widget _buildUrlSection() {
-    return TextFormField(
-      controller: _urlController,
-      decoration: const InputDecoration(
-        labelText: '视频链接',
-        hintText: '粘贴 YouTube 或其他视频链接',
-        prefixIcon: Icon(Icons.link),
-      ),
-      keyboardType: TextInputType.url,
     );
   }
 
@@ -308,7 +222,11 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
             padding: const EdgeInsets.only(top: 8),
             child: Row(
               children: [
-                Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: AppColors.success,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -318,7 +236,10 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
                     ),
                   ),
                 ),
-                TextButton(onPressed: _pickVideo, child: const Text('重新选择')),
+                TextButton(
+                  onPressed: _pickVideo,
+                  child: const Text('重新选择'),
+                ),
               ],
             ),
           ),
@@ -333,11 +254,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
       children: [
         Text(
           '视频裁剪',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 16),
 
-        // 开始时间
         Row(
           children: [
             Text(
@@ -354,11 +276,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
         const SizedBox(height: 8),
 
         RangeSlider(
-          values: RangeValues(_trimStart.toDouble(), _trimEnd.toDouble()),
+          values: RangeValues(
+            _trimStart.toDouble(),
+            _trimEnd.toDouble(),
+          ),
           min: 0,
-          max: _videoDuration > 0
-              ? _videoDuration.toDouble()
-              : _trimEnd.toDouble(),
+          max: _videoDuration.toDouble(),
           onChanged: (values) {
             setState(() {
               _trimStart = values.start.round();
@@ -367,7 +290,6 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
           },
         ),
 
-        // 预览按钮
         Center(
           child: TextButton.icon(
             onPressed: _previewTrim,
@@ -379,83 +301,51 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     );
   }
 
-  /// 熟练度选择
+  /// 初始熟练度选择
   Widget _buildMasterySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '熟练度',
-              style: AppTextStyles.body.copyWith(
-                color: AppColors.textSecondary,
-              ),
-            ),
-            Text(
-              '$_masteryLevel%',
-              style: AppTextStyles.heading3.copyWith(color: _getMasteryColor()),
-            ),
-          ],
+        Text(
+          '初始熟练度',
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 12),
-        Slider(
-          value: _masteryLevel.toDouble(),
-          min: 0,
-          max: 100,
-          divisions: 20,
-          activeColor: _getMasteryColor(),
-          onChanged: (value) {
-            setState(() => _masteryLevel = value.round());
-          },
-        ),
-        const SizedBox(height: 8),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            Text(
-              '新手',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textHint,
-              ),
-            ),
-            Text(
-              '已掌握',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textHint,
-              ),
-            ),
-          ],
+        IntrinsicHeight(
+          child: Row(
+            children: MasteryLevel.values.map((level) {
+              return Expanded(
+                child: Padding(
+                  padding: EdgeInsets.only(
+                    right: level != MasteryLevel.mastered ? 8 : 0,
+                  ),
+                  child: _MasteryCard(
+                    level: level,
+                    isSelected: _masteryLevel == level,
+                    onTap: () => setState(() => _masteryLevel = level),
+                  ),
+                ),
+              );
+            }).toList(),
+          ),
         ),
       ],
     );
   }
 
-  Color _getMasteryColor() {
-    if (_masteryLevel < 30) {
-      return AppColors.warning;
-    } else if (_masteryLevel < 70) {
-      return AppColors.info;
-    } else {
-      return AppColors.success;
-    }
-  }
-
-  /// 删除按钮
-  Widget _buildDeleteButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: _isSaving ? null : _deleteElement,
-        icon: const Icon(Icons.delete_outline, color: AppColors.error),
-        label: const Text('删除元素'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.error,
-          side: const BorderSide(color: AppColors.error),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
+  /// 备注输入
+  Widget _buildNotesField() {
+    return TextFormField(
+      controller: _notesController,
+      decoration: const InputDecoration(
+        labelText: '备注（可选）',
+        hintText: '添加备注信息...',
+        alignLabelWithHint: true,
       ),
+      maxLines: 3,
+      textInputAction: TextInputAction.done,
     );
   }
 
@@ -463,10 +353,11 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
   Future<void> _pickVideo() async {
     try {
       final picker = ImagePicker();
-      final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+      final XFile? video = await picker.pickVideo(
+        source: ImageSource.gallery,
+      );
 
       if (video != null) {
-        // 释放旧的控制器
         await _videoController?.dispose();
 
         _videoPath = video.path;
@@ -481,9 +372,9 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('选择视频失败: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('选择视频失败: $e')),
+        );
       }
     }
   }
@@ -495,7 +386,6 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     _videoController!.seekTo(Duration(milliseconds: _trimStart));
     _videoController!.play();
 
-    // 在到达结束时间时暂停
     _videoController!.addListener(() {
       if (_videoController!.value.position.inMilliseconds >= _trimEnd) {
         _videoController!.pause();
@@ -504,30 +394,23 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     });
   }
 
-  /// 保存元素
-  Future<void> _saveElement() async {
+  /// 保存舞段
+  Future<void> _saveRoutine() async {
     if (!_formKey.currentState!.validate()) return;
 
     // 验证视频源
-    if (_videoSourceType == VideoSourceType.localGallery &&
-        _videoPath == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请选择视频或更改为"无视频"')));
-      return;
-    }
-
-    if (_videoSourceType == VideoSourceType.webUrl &&
-        _urlController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请输入视频链接或更改为"无视频"')));
+    if (_videoSourceType == VideoSourceType.localGallery && _videoPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择视频或更改为"无视频"')),
+      );
       return;
     }
 
     setState(() => _isSaving = true);
 
     try {
+      final srsAlgorithm = SrsAlgorithmService();
+      final initialMastery = srsAlgorithm.getInitialMasteryLevel(_masteryLevel);
       final now = DateTime.now().millisecondsSinceEpoch;
 
       String videoUri;
@@ -536,94 +419,43 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
           videoUri = _videoPath!;
           break;
         case VideoSourceType.webUrl:
-          videoUri = _urlController.text.trim();
-          break;
         case VideoSourceType.bundledAsset:
         case VideoSourceType.none:
           videoUri = '';
           break;
       }
 
-      // 根据熟练度计算状态
-      final newStatus = _masteryLevel < 30
-          ? ElementStatus.new_
-          : _masteryLevel < 70
-          ? ElementStatus.learning
-          : ElementStatus.reviewing;
-
-      final updatedElement = _originalElement!.copyWith(
+      final routine = DanceRoutine(
+        id: const Uuid().v4(),
         name: _nameController.text.trim(),
         category: _categoryController.text.trim(),
         videoSourceType: _videoSourceType,
         videoUri: videoUri,
         trimStart: _trimStart,
         trimEnd: _trimEnd,
-        masteryLevel: _masteryLevel,
-        status: newStatus,
-        updatedAt: now,
+        status: RoutineStatus.new_,
+        masteryLevel: initialMastery,
+        lastPracticedAt: now,
+        createdAt: now,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
       );
 
-      await ref
-          .read(danceElementsNotifierProvider.notifier)
-          .updateElement(updatedElement);
+      await ref.read(routineNotifierProvider.notifier).addRoutine(routine);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('元素已更新')));
-        context.pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('舞段已添加')),
+        );
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
       }
     } finally {
       setState(() => _isSaving = false);
-    }
-  }
-
-  /// 删除元素
-  Future<void> _deleteElement() async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('删除元素'),
-        content: const Text('确定要删除这个元素吗？此操作无法撤销。'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(false),
-            child: const Text('取消'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.of(dialogContext).pop(true),
-            style: TextButton.styleFrom(foregroundColor: AppColors.error),
-            child: const Text('删除'),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmed != true) return;
-
-    // 即使页面因对话框路由操作而被卸载，仍然执行删除
-    try {
-      await ref
-          .read(danceElementsNotifierProvider.notifier)
-          .deleteElement(widget.elementId);
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('元素已删除')),
-        );
-        context.pop(true);
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('删除失败: $e')),
-        );
-      }
     }
   }
 
@@ -657,9 +489,7 @@ class _VideoSourceOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withOpacity(0.2)
-              : AppColors.surface,
+          color: isSelected ? AppColors.primary.withOpacity(0.2) : AppColors.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.surfaceLight,
@@ -678,6 +508,93 @@ class _VideoSourceOption extends StatelessWidget {
               style: AppTextStyles.bodySmall.copyWith(
                 color: isSelected ? AppColors.primary : AppColors.textSecondary,
                 fontWeight: isSelected ? FontWeight.w600 : FontWeight.normal,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+/// 熟练度卡片
+class _MasteryCard extends StatelessWidget {
+  final MasteryLevel level;
+  final bool isSelected;
+  final VoidCallback onTap;
+
+  const _MasteryCard({
+    required this.level,
+    required this.isSelected,
+    required this.onTap,
+  });
+
+  String get _label {
+    switch (level) {
+      case MasteryLevel.new_:
+        return '新手';
+      case MasteryLevel.learning:
+        return '学习中';
+      case MasteryLevel.mastered:
+        return '已掌握';
+    }
+  }
+
+  String get _description {
+    switch (level) {
+      case MasteryLevel.new_:
+        return '熟练度: 0';
+      case MasteryLevel.learning:
+        return '熟练度: 30';
+      case MasteryLevel.mastered:
+        return '熟练度: 70';
+    }
+  }
+
+  Color get _color {
+    switch (level) {
+      case MasteryLevel.new_:
+        return AppColors.warning;
+      case MasteryLevel.learning:
+        return AppColors.info;
+      case MasteryLevel.mastered:
+        return AppColors.success;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(12),
+        decoration: BoxDecoration(
+          color: isSelected ? _color.withOpacity(0.2) : AppColors.surface,
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(
+            color: isSelected ? _color : AppColors.surfaceLight,
+            width: isSelected ? 2 : 1,
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text(
+              _label,
+              textAlign: TextAlign.center,
+              style: AppTextStyles.body.copyWith(
+                color: isSelected ? _color : AppColors.textPrimary,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _description,
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              style: AppTextStyles.bodySmall.copyWith(
+                color: AppColors.textHint,
+                fontSize: 11,
               ),
             ),
           ],

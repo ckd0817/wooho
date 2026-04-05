@@ -1,4 +1,4 @@
-package com.danceloop.danceloop
+package com.wooho.wooho
 
 import io.flutter.embedding.android.FlutterFragmentActivity
 

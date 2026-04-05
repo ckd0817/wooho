@@ -38,12 +38,8 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
         Expanded(
           child: allElementsAsync.when(
             data: (elements) => _buildElementList(elements),
-            loading: () => const Center(
-              child: CircularProgressIndicator(),
-            ),
-            error: (error, _) => Center(
-              child: Text('加载失败: $error'),
-            ),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (error, _) => Center(child: Text('加载失败: $error')),
           ),
         ),
       ],
@@ -64,14 +60,16 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
             onTap: () => setState(() => _selectedCategory = null),
           ),
           const SizedBox(width: 8),
-          ...categories.map((category) => Padding(
-                padding: const EdgeInsets.only(right: 8),
-                child: _CategoryChip(
-                  label: category,
-                  isSelected: _selectedCategory == category,
-                  onTap: () => setState(() => _selectedCategory = category),
-                ),
-              )),
+          ...categories.map(
+            (category) => Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: _CategoryChip(
+                label: category,
+                isSelected: _selectedCategory == category,
+                onTap: () => setState(() => _selectedCategory = category),
+              ),
+            ),
+          ),
         ],
       ),
     );
@@ -112,16 +110,12 @@ class _MyLibraryTabState extends ConsumerState<MyLibraryTab> {
           const SizedBox(height: 16),
           Text(
             '还没有添加元素',
-            style: AppTextStyles.body.copyWith(
-              color: AppColors.textSecondary,
-            ),
+            style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
           ),
           const SizedBox(height: 8),
           Text(
             '从预置元素库快速添加，或自定义创建',
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textHint,
-            ),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
           ),
           const SizedBox(height: 16),
           Row(
@@ -179,7 +173,9 @@ class _CategoryChip extends StatelessWidget {
           child: Text(
             label,
             style: AppTextStyles.bodySmall.copyWith(
-              color: isSelected ? AppColors.textPrimary : AppColors.textSecondary,
+              color: isSelected
+                  ? AppColors.textPrimary
+                  : AppColors.textSecondary,
             ),
             overflow: TextOverflow.visible,
             softWrap: false,
@@ -191,15 +187,28 @@ class _CategoryChip extends StatelessWidget {
 }
 
 /// 元素卡片
-class _ElementCard extends StatelessWidget {
+class _ElementCard extends ConsumerWidget {
   final DanceElement element;
 
   const _ElementCard({required this.element});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context, WidgetRef ref) {
     return GestureDetector(
-      onTap: () => context.push('/library/edit/${element.id}'),
+      onTap: () async {
+        final didChange = await context.push<bool>(
+          '/library/edit/${element.id}',
+        );
+        if (didChange == true) {
+          ref.invalidate(allElementsProvider);
+          ref.invalidate(categoriesProvider);
+          ref.invalidate(addedElementsSetProvider);
+          ref.invalidate(trainingElementsProvider);
+          ref.invalidate(elementCountProvider);
+          ref.invalidate(orderedElementsProvider);
+          ref.read(elementDataVersionProvider.notifier).state++;
+        }
+      },
       child: Container(
         margin: const EdgeInsets.only(bottom: 12),
         padding: const EdgeInsets.all(16),
@@ -207,72 +216,74 @@ class _ElementCard extends StatelessWidget {
           color: AppColors.surface,
           borderRadius: BorderRadius.circular(12),
         ),
-      child: Row(
-        children: [
-          // 状态指示器
-          Container(
-            width: 4,
-            height: 48,
-            decoration: BoxDecoration(
-              color: _getStatusColor(),
-              borderRadius: BorderRadius.circular(2),
+        child: Row(
+          children: [
+            // 状态指示器
+            Container(
+              width: 4,
+              height: 48,
+              decoration: BoxDecoration(
+                color: _getStatusColor(),
+                borderRadius: BorderRadius.circular(2),
+              ),
             ),
-          ),
-          const SizedBox(width: 12),
+            const SizedBox(width: 12),
 
-          // 元素信息
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+            // 元素信息
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    element.name,
+                    style: AppTextStyles.body.copyWith(
+                      color: AppColors.textPrimary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    element.category,
+                    style: AppTextStyles.bodySmall.copyWith(
+                      color: AppColors.textHint,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // 熟练度信息
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(
-                  element.name,
-                  style: AppTextStyles.body.copyWith(
-                    color: AppColors.textPrimary,
-                    fontWeight: FontWeight.w600,
+                // 熟练度进度条
+                SizedBox(
+                  width: 60,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(4),
+                    child: LinearProgressIndicator(
+                      value: element.masteryLevel / 100,
+                      backgroundColor: AppColors.surfaceLight,
+                      valueColor: AlwaysStoppedAnimation<Color>(
+                        _getMasteryColor(),
+                      ),
+                      minHeight: 6,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  element.category,
+                  '熟练度 ${element.masteryLevel}%',
                   style: AppTextStyles.bodySmall.copyWith(
                     color: AppColors.textHint,
+                    fontSize: 11,
                   ),
                 ),
               ],
             ),
-          ),
-
-          // 熟练度信息
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              // 熟练度进度条
-              SizedBox(
-                width: 60,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(4),
-                  child: LinearProgressIndicator(
-                    value: element.masteryLevel / 100,
-                    backgroundColor: AppColors.surfaceLight,
-                    valueColor: AlwaysStoppedAnimation<Color>(_getMasteryColor()),
-                    minHeight: 6,
-                  ),
-                ),
-              ),
-              const SizedBox(height: 4),
-              Text(
-                '熟练度 ${element.masteryLevel}%',
-                style: AppTextStyles.bodySmall.copyWith(
-                  color: AppColors.textHint,
-                  fontSize: 11,
-                ),
-              ),
-            ],
-          ),
-        ],
+          ],
+        ),
       ),
-    ),
     );
   }
 

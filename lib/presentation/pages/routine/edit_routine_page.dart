@@ -8,24 +8,25 @@ import 'package:image_picker/image_picker.dart';
 import 'package:video_player/video_player.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_text_styles.dart';
+import '../../../data/models/dance_routine.dart';
 import '../../../data/models/dance_element.dart';
-import '../../providers/user_elements_provider.dart';
+import '../../providers/routine_provider.dart';
 
-/// 编辑元素页面
-class EditElementPage extends ConsumerStatefulWidget {
-  final String elementId;
+/// 编辑舞段页面
+class EditRoutinePage extends ConsumerStatefulWidget {
+  final String routineId;
 
-  const EditElementPage({super.key, required this.elementId});
+  const EditRoutinePage({super.key, required this.routineId});
 
   @override
-  ConsumerState<EditElementPage> createState() => _EditElementPageState();
+  ConsumerState<EditRoutinePage> createState() => _EditRoutinePageState();
 }
 
-class _EditElementPageState extends ConsumerState<EditElementPage> {
+class _EditRoutinePageState extends ConsumerState<EditRoutinePage> {
   final _formKey = GlobalKey<FormState>();
   final _nameController = TextEditingController();
   final _categoryController = TextEditingController();
-  final _urlController = TextEditingController();
+  final _notesController = TextEditingController();
 
   // 视频源选择
   VideoSourceType _videoSourceType = VideoSourceType.none;
@@ -40,50 +41,47 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
 
   bool _isSaving = false;
   bool _isLoading = true;
-  DanceElement? _originalElement;
+  DanceRoutine? _originalRoutine;
 
   @override
   void initState() {
     super.initState();
-    _loadElement();
+    _loadRoutine();
   }
 
   @override
   void dispose() {
     _nameController.dispose();
     _categoryController.dispose();
-    _urlController.dispose();
+    _notesController.dispose();
     _videoController?.dispose();
     super.dispose();
   }
 
-  /// 加载元素数据
-  Future<void> _loadElement() async {
-    final element = await ref.read(
-      elementByIdProvider(widget.elementId).future,
-    );
-    if (element != null && mounted) {
-      _originalElement = element;
-      _nameController.text = element.name;
-      _categoryController.text = element.category;
-      _videoSourceType = element.videoSourceType;
-      _trimStart = element.trimStart;
-      _trimEnd = element.trimEnd;
-      _masteryLevel = element.masteryLevel;
+  /// 加载舞段数据
+  Future<void> _loadRoutine() async {
+    final routine = await ref.read(routineByIdProvider(widget.routineId).future);
+    if (routine != null && mounted) {
+      _originalRoutine = routine;
+      _nameController.text = routine.name;
+      _categoryController.text = routine.category;
+      _notesController.text = routine.notes ?? '';
+      _videoSourceType = routine.videoSourceType;
+      _trimStart = routine.trimStart;
+      _trimEnd = routine.trimEnd;
+      _masteryLevel = routine.masteryLevel;
 
-      if (element.videoSourceType == VideoSourceType.webUrl) {
-        _urlController.text = element.videoUri;
-      } else if (element.videoSourceType == VideoSourceType.localGallery) {
-        _videoPath = element.videoUri;
-        _loadVideoController(element.videoUri);
+      if (routine.videoSourceType == VideoSourceType.localGallery) {
+        _videoPath = routine.videoUri;
+        _loadVideoController(routine.videoUri);
       }
 
       setState(() => _isLoading = false);
     } else if (mounted) {
       setState(() => _isLoading = false);
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('元素不存在')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('舞段不存在')),
+      );
       context.pop();
     }
   }
@@ -104,17 +102,17 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return Scaffold(
-        appBar: AppBar(title: const Text('编辑元素')),
+        appBar: AppBar(title: const Text('编辑舞段')),
         body: const Center(child: CircularProgressIndicator()),
       );
     }
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('编辑元素'),
+        title: const Text('编辑舞段'),
         actions: [
           TextButton(
-            onPressed: _isSaving ? null : _saveElement,
+            onPressed: _isSaving ? null : _saveRoutine,
             child: _isSaving
                 ? const SizedBox(
                     width: 20,
@@ -130,7 +128,7 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            // 元素名称
+            // 舞段名称
             _buildNameField(),
             const SizedBox(height: 16),
 
@@ -145,17 +143,18 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
             // 视频选择区域
             if (_videoSourceType == VideoSourceType.localGallery)
               _buildVideoSection(),
-            if (_videoSourceType == VideoSourceType.webUrl) _buildUrlSection(),
-            if (_videoSourceType == VideoSourceType.localGallery &&
-                _videoPath != null)
+            if (_videoSourceType == VideoSourceType.localGallery && _videoPath != null)
               const SizedBox(height: 16),
-            if (_videoSourceType == VideoSourceType.localGallery &&
-                _videoPath != null)
+            if (_videoSourceType == VideoSourceType.localGallery && _videoPath != null)
               _buildTrimSection(),
             const SizedBox(height: 24),
 
             // 熟练度
             _buildMasterySection(),
+            const SizedBox(height: 24),
+
+            // 备注
+            _buildNotesField(),
             const SizedBox(height: 32),
 
             // 删除按钮
@@ -172,12 +171,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     return TextFormField(
       controller: _nameController,
       decoration: const InputDecoration(
-        labelText: '元素名称 *',
-        hintText: '例如: Walk Out',
+        labelText: '舞段名称 *',
+        hintText: '例如: 基础步伐组合',
       ),
       validator: (value) {
         if (value == null || value.trim().isEmpty) {
-          return '请输入元素名称';
+          return '请输入舞段名称';
         }
         return null;
       },
@@ -208,7 +207,9 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
       children: [
         Text(
           '视频源',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 12),
         Row(
@@ -218,8 +219,7 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
                 icon: Icons.videocam_off_outlined,
                 label: '无视频',
                 isSelected: _videoSourceType == VideoSourceType.none,
-                onTap: () =>
-                    setState(() => _videoSourceType = VideoSourceType.none),
+                onTap: () => setState(() => _videoSourceType = VideoSourceType.none),
               ),
             ),
             const SizedBox(width: 8),
@@ -228,37 +228,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
                 icon: Icons.video_library_outlined,
                 label: '相册',
                 isSelected: _videoSourceType == VideoSourceType.localGallery,
-                onTap: () => setState(
-                  () => _videoSourceType = VideoSourceType.localGallery,
-                ),
-              ),
-            ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: _VideoSourceOption(
-                icon: Icons.link,
-                label: '链接',
-                isSelected: _videoSourceType == VideoSourceType.webUrl,
-                onTap: () =>
-                    setState(() => _videoSourceType = VideoSourceType.webUrl),
+                onTap: () => setState(() => _videoSourceType = VideoSourceType.localGallery),
               ),
             ),
           ],
         ),
       ],
-    );
-  }
-
-  /// URL 输入区域
-  Widget _buildUrlSection() {
-    return TextFormField(
-      controller: _urlController,
-      decoration: const InputDecoration(
-        labelText: '视频链接',
-        hintText: '粘贴 YouTube 或其他视频链接',
-        prefixIcon: Icon(Icons.link),
-      ),
-      keyboardType: TextInputType.url,
     );
   }
 
@@ -308,7 +283,11 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
             padding: const EdgeInsets.only(top: 8),
             child: Row(
               children: [
-                Icon(Icons.check_circle, size: 16, color: AppColors.success),
+                Icon(
+                  Icons.check_circle,
+                  size: 16,
+                  color: AppColors.success,
+                ),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
@@ -318,7 +297,10 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
                     ),
                   ),
                 ),
-                TextButton(onPressed: _pickVideo, child: const Text('重新选择')),
+                TextButton(
+                  onPressed: _pickVideo,
+                  child: const Text('重新选择'),
+                ),
               ],
             ),
           ),
@@ -333,11 +315,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
       children: [
         Text(
           '视频裁剪',
-          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
+          style: AppTextStyles.body.copyWith(
+            color: AppColors.textSecondary,
+          ),
         ),
         const SizedBox(height: 16),
 
-        // 开始时间
         Row(
           children: [
             Text(
@@ -354,11 +337,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
         const SizedBox(height: 8),
 
         RangeSlider(
-          values: RangeValues(_trimStart.toDouble(), _trimEnd.toDouble()),
+          values: RangeValues(
+            _trimStart.toDouble(),
+            _trimEnd.toDouble(),
+          ),
           min: 0,
-          max: _videoDuration > 0
-              ? _videoDuration.toDouble()
-              : _trimEnd.toDouble(),
+          max: _videoDuration > 0 ? _videoDuration.toDouble() : _trimEnd.toDouble(),
           onChanged: (values) {
             setState(() {
               _trimStart = values.start.round();
@@ -367,7 +351,6 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
           },
         ),
 
-        // 预览按钮
         Center(
           child: TextButton.icon(
             onPressed: _previewTrim,
@@ -395,7 +378,9 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
             ),
             Text(
               '$_masteryLevel%',
-              style: AppTextStyles.heading3.copyWith(color: _getMasteryColor()),
+              style: AppTextStyles.heading3.copyWith(
+                color: _getMasteryColor(),
+              ),
             ),
           ],
         ),
@@ -416,19 +401,46 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
           children: [
             Text(
               '新手',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textHint,
-              ),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
             ),
             Text(
               '已掌握',
-              style: AppTextStyles.bodySmall.copyWith(
-                color: AppColors.textHint,
-              ),
+              style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
             ),
           ],
         ),
       ],
+    );
+  }
+
+  /// 备注输入
+  Widget _buildNotesField() {
+    return TextFormField(
+      controller: _notesController,
+      decoration: const InputDecoration(
+        labelText: '备注（可选）',
+        hintText: '添加备注信息...',
+        alignLabelWithHint: true,
+      ),
+      maxLines: 3,
+      textInputAction: TextInputAction.done,
+    );
+  }
+
+  /// 删除按钮
+  Widget _buildDeleteButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: _deleteRoutine,
+        icon: const Icon(Icons.delete_outline, color: AppColors.error),
+        label: const Text('删除舞段'),
+        style: OutlinedButton.styleFrom(
+          foregroundColor: AppColors.error,
+          side: const BorderSide(color: AppColors.error),
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
     );
   }
 
@@ -442,28 +454,13 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     }
   }
 
-  /// 删除按钮
-  Widget _buildDeleteButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        onPressed: _isSaving ? null : _deleteElement,
-        icon: const Icon(Icons.delete_outline, color: AppColors.error),
-        label: const Text('删除元素'),
-        style: OutlinedButton.styleFrom(
-          foregroundColor: AppColors.error,
-          side: const BorderSide(color: AppColors.error),
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
-    );
-  }
-
   /// 选择视频
   Future<void> _pickVideo() async {
     try {
       final picker = ImagePicker();
-      final XFile? video = await picker.pickVideo(source: ImageSource.gallery);
+      final XFile? video = await picker.pickVideo(
+        source: ImageSource.gallery,
+      );
 
       if (video != null) {
         // 释放旧的控制器
@@ -481,9 +478,9 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('选择视频失败: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('选择视频失败: $e')),
+        );
       }
     }
   }
@@ -495,7 +492,6 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     _videoController!.seekTo(Duration(milliseconds: _trimStart));
     _videoController!.play();
 
-    // 在到达结束时间时暂停
     _videoController!.addListener(() {
       if (_videoController!.value.position.inMilliseconds >= _trimEnd) {
         _videoController!.pause();
@@ -504,24 +500,15 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
     });
   }
 
-  /// 保存元素
-  Future<void> _saveElement() async {
+  /// 保存舞段
+  Future<void> _saveRoutine() async {
     if (!_formKey.currentState!.validate()) return;
 
     // 验证视频源
-    if (_videoSourceType == VideoSourceType.localGallery &&
-        _videoPath == null) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请选择视频或更改为"无视频"')));
-      return;
-    }
-
-    if (_videoSourceType == VideoSourceType.webUrl &&
-        _urlController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('请输入视频链接或更改为"无视频"')));
+    if (_videoSourceType == VideoSourceType.localGallery && _videoPath == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('请选择视频或更改为"无视频"')),
+      );
       return;
     }
 
@@ -536,8 +523,6 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
           videoUri = _videoPath!;
           break;
         case VideoSourceType.webUrl:
-          videoUri = _urlController.text.trim();
-          break;
         case VideoSourceType.bundledAsset:
         case VideoSourceType.none:
           videoUri = '';
@@ -546,12 +531,12 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
 
       // 根据熟练度计算状态
       final newStatus = _masteryLevel < 30
-          ? ElementStatus.new_
+          ? RoutineStatus.new_
           : _masteryLevel < 70
-          ? ElementStatus.learning
-          : ElementStatus.reviewing;
+              ? RoutineStatus.learning
+              : RoutineStatus.reviewing;
 
-      final updatedElement = _originalElement!.copyWith(
+      final updatedRoutine = _originalRoutine!.copyWith(
         name: _nameController.text.trim(),
         category: _categoryController.text.trim(),
         videoSourceType: _videoSourceType,
@@ -560,37 +545,36 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
         trimEnd: _trimEnd,
         masteryLevel: _masteryLevel,
         status: newStatus,
+        notes: _notesController.text.trim().isEmpty ? null : _notesController.text.trim(),
         updatedAt: now,
       );
 
-      await ref
-          .read(danceElementsNotifierProvider.notifier)
-          .updateElement(updatedElement);
+      await ref.read(routineNotifierProvider.notifier).updateRoutine(updatedRoutine);
 
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('元素已更新')));
-        context.pop(true);
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('舞段已更新')),
+        );
+        context.pop();
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text('保存失败: $e')));
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('保存失败: $e')),
+        );
       }
     } finally {
       setState(() => _isSaving = false);
     }
   }
 
-  /// 删除元素
-  Future<void> _deleteElement() async {
+  /// 删除舞段
+  Future<void> _deleteRoutine() async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('删除元素'),
-        content: const Text('确定要删除这个元素吗？此操作无法撤销。'),
+        title: const Text('删除舞段'),
+        content: const Text('确定要删除这个舞段吗？此操作无法撤销。'),
         actions: [
           TextButton(
             onPressed: () => Navigator.of(dialogContext).pop(false),
@@ -609,12 +593,10 @@ class _EditElementPageState extends ConsumerState<EditElementPage> {
 
     // 即使页面因对话框路由操作而被卸载，仍然执行删除
     try {
-      await ref
-          .read(danceElementsNotifierProvider.notifier)
-          .deleteElement(widget.elementId);
+      await ref.read(routineNotifierProvider.notifier).deleteRoutine(widget.routineId);
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('元素已删除')),
+          const SnackBar(content: Text('舞段已删除')),
         );
         context.pop(true);
       }
@@ -657,9 +639,7 @@ class _VideoSourceOption extends StatelessWidget {
       child: Container(
         padding: const EdgeInsets.symmetric(vertical: 16),
         decoration: BoxDecoration(
-          color: isSelected
-              ? AppColors.primary.withOpacity(0.2)
-              : AppColors.surface,
+          color: isSelected ? AppColors.primary.withOpacity(0.2) : AppColors.surface,
           borderRadius: BorderRadius.circular(8),
           border: Border.all(
             color: isSelected ? AppColors.primary : AppColors.surfaceLight,

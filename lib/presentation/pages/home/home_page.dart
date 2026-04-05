@@ -7,9 +7,9 @@ import '../../providers/user_elements_provider.dart';
 import '../../providers/statistics_provider.dart';
 import '../../providers/routine_provider.dart';
 import '../../providers/training_settings_provider.dart';
+import '../../../data/datasources/local/dance_element_dao.dart';
 import '../../../data/datasources/local/review_dao.dart';
 import '../../../data/datasources/local/routine_record_dao.dart';
-import '../../../data/datasources/local/dance_element_dao.dart';
 import '../../../data/datasources/local/dance_routine_dao.dart';
 import '../../../data/models/dance_element.dart';
 import '../../../data/models/dance_routine.dart';
@@ -17,8 +17,9 @@ import '../../../data/models/routine_record.dart';
 
 /// 今日元素练习次数 Provider
 final todayElementReviewProvider = FutureProvider<int>((ref) async {
-  final dao = ReviewDao();
-  return await dao.getTodayReviewCount();
+  ref.watch(elementDataVersionProvider);
+  final repository = ref.watch(reviewRepositoryProvider);
+  return await repository.getTodayReviewCount();
 });
 
 /// 今日舞段练习次数 Provider
@@ -28,36 +29,18 @@ final todayRoutineReviewProvider = FutureProvider<int>((ref) async {
 });
 
 /// 首页待训练元素队列 Provider（显示所有元素）
-final homeElementQueueProvider = FutureProvider<List<DanceElement>>((ref) async {
-  final settings = ref.watch(trainingSettingsProvider);
-  final dao = DanceElementDao();
-  final allElements = await dao.getAll();
-  final elementMap = {for (var e in allElements) e.id: e};
-
-  if (settings.customElementOrder.isNotEmpty) {
-    // 按用户设置的完整顺序返回
-    return settings.customElementOrder
-        .map((id) => elementMap[id])
-        .whereType<DanceElement>()
-        .toList();
-  }
-
-  // 按 SRS 算法排序（优先级）
-  final orderedElements = await dao.getAllOrderedByPriority();
-  // 缓存顺序到 customElementOrder
-  if (orderedElements.isNotEmpty) {
-    Future.microtask(() {
-      ref.read(trainingSettingsProvider.notifier).setCustomElementOrder(
-        orderedElements.map((e) => e.id).toList(),
-      );
-    });
-  }
-  return orderedElements;
+final homeElementQueueProvider = FutureProvider<List<DanceElement>>((
+  ref,
+) async {
+  return await ref.watch(orderedElementsProvider.future);
 });
 
 /// 首页待训练舞段队列 Provider（显示所有舞段）
-final homeRoutineQueueProvider = FutureProvider<List<DanceRoutine>>((ref) async {
+final homeRoutineQueueProvider = FutureProvider<List<DanceRoutine>>((
+  ref,
+) async {
   final settings = ref.watch(trainingSettingsProvider);
+  final settingsNotifier = ref.read(trainingSettingsProvider.notifier);
   final dao = DanceRoutineDao();
   final allRoutines = await dao.getAll();
   final routineMap = {for (var r in allRoutines) r.id: r};
@@ -75,7 +58,7 @@ final homeRoutineQueueProvider = FutureProvider<List<DanceRoutine>>((ref) async 
   // 缓存顺序到 customRoutineOrder
   if (orderedRoutines.isNotEmpty) {
     Future.microtask(() {
-      ref.read(trainingSettingsProvider.notifier).setCustomRoutineOrder(
+      settingsNotifier.setCustomRoutineOrder(
         orderedRoutines.map((r) => r.id).toList(),
       );
     });
@@ -99,56 +82,61 @@ class _TrainingHistoryItem {
 }
 
 /// 最近训练记录 Provider（autoDispose 确保每次进入首页都刷新）
-final recentTrainingHistoryProvider = FutureProvider.autoDispose<List<_TrainingHistoryItem>>((ref) async {
-  final elementDao = ReviewDao();
-  final routineDao = RoutineRecordDao();
-  final elementDataDao = DanceElementDao();
-  final routineDataDao = DanceRoutineDao();
+final recentTrainingHistoryProvider =
+    FutureProvider.autoDispose<List<_TrainingHistoryItem>>((ref) async {
+      final elementDao = ReviewDao();
+      final routineDao = RoutineRecordDao();
+      final elementDataDao = DanceElementDao();
+      final routineDataDao = DanceRoutineDao();
 
-  // 获取最近的元素训练记录
-  final elementRecords = await elementDao.getRecentRecords(limit: 10);
-  // 获取最近的舞段训练记录
-  final routineRecords = await routineDao.getRecentRecords(limit: 10);
+      // 获取最近的元素训练记录
+      final elementRecords = await elementDao.getRecentRecords(limit: 10);
+      // 获取最近的舞段训练记录
+      final routineRecords = await routineDao.getRecentRecords(limit: 10);
 
-  // 获取元素名称映射
-  final elements = await elementDataDao.getAll();
-  final elementMap = {for (var e in elements) e.id: e};
+      // 获取元素名称映射
+      final elements = await elementDataDao.getAll();
+      final elementMap = {for (var e in elements) e.id: e};
 
-  // 获取舞段名称映射
-  final routines = await routineDataDao.getAll();
-  final routineMap = {for (var r in routines) r.id: r};
+      // 获取舞段名称映射
+      final routines = await routineDataDao.getAll();
+      final routineMap = {for (var r in routines) r.id: r};
 
-  // 合并并转换为统一格式
-  final items = <_TrainingHistoryItem>[];
+      // 合并并转换为统一格式
+      final items = <_TrainingHistoryItem>[];
 
-  for (final record in elementRecords) {
-    final element = elementMap[record.elementId];
-    if (element != null) {
-      items.add(_TrainingHistoryItem(
-        id: record.elementId,
-        name: element.name,
-        type: 'element',
-        timestamp: record.reviewedAt,
-      ));
-    }
-  }
+      for (final record in elementRecords) {
+        final element = elementMap[record.elementId];
+        if (element != null) {
+          items.add(
+            _TrainingHistoryItem(
+              id: record.elementId,
+              name: element.name,
+              type: 'element',
+              timestamp: record.reviewedAt,
+            ),
+          );
+        }
+      }
 
-  for (final record in routineRecords) {
-    final routine = routineMap[record.routineId];
-    if (routine != null) {
-      items.add(_TrainingHistoryItem(
-        id: record.routineId,
-        name: routine.name,
-        type: 'routine',
-        timestamp: record.reviewedAt,
-      ));
-    }
-  }
+      for (final record in routineRecords) {
+        final routine = routineMap[record.routineId];
+        if (routine != null) {
+          items.add(
+            _TrainingHistoryItem(
+              id: record.routineId,
+              name: routine.name,
+              type: 'routine',
+              timestamp: record.reviewedAt,
+            ),
+          );
+        }
+      }
 
-  // 按时间排序，取最近的 5 条
-  items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
-  return items.take(5).toList();
-});
+      // 按时间排序，取最近的 5 条
+      items.sort((a, b) => b.timestamp.compareTo(a.timestamp));
+      return items.take(5).toList();
+    });
 
 /// 首页
 class HomePage extends ConsumerWidget {
@@ -178,11 +166,20 @@ class HomePage extends ConsumerWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // 欢迎区域
-            _buildWelcomeSection(streakAsync, todayElementAsync, todayRoutineAsync),
+            _buildWelcomeSection(
+              streakAsync,
+              todayElementAsync,
+              todayRoutineAsync,
+            ),
             const SizedBox(height: 24),
 
             // 训练入口卡片
-            _buildTrainingCards(context, ref, elementCountAsync, routineCountAsync),
+            _buildTrainingCards(
+              context,
+              ref,
+              elementCountAsync,
+              routineCountAsync,
+            ),
             const SizedBox(height: 24),
 
             // 最近训练
@@ -208,10 +205,7 @@ class HomePage extends ConsumerWidget {
       data: (count) => count,
       orElse: () => 0,
     );
-    final streak = streakAsync.maybeWhen(
-      data: (days) => days,
-      orElse: () => 0,
-    );
+    final streak = streakAsync.maybeWhen(data: (days) => days, orElse: () => 0);
 
     return Container(
       width: double.infinity,
@@ -325,15 +319,19 @@ class HomePage extends ConsumerWidget {
   }
 
   /// 开始元素训练
-  void _startElementTraining(BuildContext context, WidgetRef ref, AsyncValue<int> countAsync) {
+  void _startElementTraining(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<int> countAsync,
+  ) {
     countAsync.maybeWhen(
       data: (count) {
         if (count > 0) {
           context.push('/review');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('请先添加元素')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('请先添加元素')));
         }
       },
       orElse: () {},
@@ -341,15 +339,19 @@ class HomePage extends ConsumerWidget {
   }
 
   /// 开始舞段训练
-  void _startRoutineTraining(BuildContext context, WidgetRef ref, AsyncValue<int> countAsync) {
+  void _startRoutineTraining(
+    BuildContext context,
+    WidgetRef ref,
+    AsyncValue<int> countAsync,
+  ) {
     countAsync.maybeWhen(
       data: (count) {
         if (count > 0) {
           context.push('/routines/review');
         } else {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('请先添加舞段')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('请先添加舞段')));
         }
       },
       orElse: () {},
@@ -365,9 +367,7 @@ class HomePage extends ConsumerWidget {
       children: [
         Text(
           '最近训练',
-          style: AppTextStyles.heading3.copyWith(
-            color: AppColors.textPrimary,
-          ),
+          style: AppTextStyles.heading3.copyWith(color: AppColors.textPrimary),
         ),
         const SizedBox(height: 12),
         historyAsync.when(
@@ -402,9 +402,7 @@ class HomePage extends ConsumerWidget {
       child: Center(
         child: Text(
           '暂无训练记录',
-          style: AppTextStyles.body.copyWith(
-            color: AppColors.textSecondary,
-          ),
+          style: AppTextStyles.body.copyWith(color: AppColors.textSecondary),
         ),
       ),
     );
@@ -459,9 +457,7 @@ class HomePage extends ConsumerWidget {
           ),
           Text(
             timeStr,
-            style: AppTextStyles.bodySmall.copyWith(
-              color: AppColors.textHint,
-            ),
+            style: AppTextStyles.bodySmall.copyWith(color: AppColors.textHint),
           ),
         ],
       ),
@@ -517,11 +513,7 @@ class _TrainingCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(
-              icon,
-              size: 36,
-              color: AppColors.textPrimary,
-            ),
+            Icon(icon, size: 36, color: AppColors.textPrimary),
             const SizedBox(height: 16),
             Text(
               title,

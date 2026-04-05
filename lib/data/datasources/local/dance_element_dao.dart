@@ -137,9 +137,9 @@ class DanceElementDao {
   }
 
   /// 删除元素
-  Future<void> delete(String id) async {
+  Future<int> delete(String id) async {
     final db = await _dbHelper.database;
-    await db.delete(
+    return await db.delete(
       DatabaseHelper.tableDanceElements,
       where: 'id = ?',
       whereArgs: [id],

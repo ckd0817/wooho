@@ -2,7 +2,7 @@
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:danceloop/main.dart';
+import 'package:wooho/main.dart';
 
 void main() {
   testWidgets('App initializes correctly', (WidgetTester tester) async {
@@ -14,6 +14,6 @@ void main() {
     );
 
     // Verify the app title is displayed
-    expect(find.text('DanceLoop'), findsOneWidget);
+    expect(find.text('Wooho'), findsOneWidget);
   });
 }

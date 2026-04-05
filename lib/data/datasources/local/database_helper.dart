@@ -14,11 +14,13 @@ class DatabaseHelper {
   static const String _databaseName = 'wooho.db';
 
   /// 数据库版本
-  static const int _databaseVersion = 3;
+  static const int _databaseVersion = 4;
 
   /// 表名
   static const String tableDanceElements = 'dance_elements';
   static const String tableReviewRecords = 'review_records';
+  static const String tableRoutines = 'routines';
+  static const String tableRoutineRecords = 'routine_records';
 
   /// 获取数据库实例
   Future<Database> get database async {
@@ -73,6 +75,38 @@ class DatabaseHelper {
       )
     ''');
 
+    // 创建舞段表
+    await db.execute('''
+      CREATE TABLE $tableRoutines (
+        id TEXT PRIMARY KEY,
+        name TEXT NOT NULL,
+        category TEXT NOT NULL,
+        video_source_type TEXT NOT NULL,
+        video_uri TEXT NOT NULL,
+        trim_start INTEGER DEFAULT 0,
+        trim_end INTEGER DEFAULT 0,
+        status TEXT NOT NULL DEFAULT 'new',
+        mastery_level INTEGER DEFAULT 0,
+        last_practiced_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        updated_at INTEGER,
+        notes TEXT
+      )
+    ''');
+
+    // 创建舞段训练记录表
+    await db.execute('''
+      CREATE TABLE $tableRoutineRecords (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        routine_id TEXT NOT NULL,
+        feedback TEXT NOT NULL,
+        reviewed_at INTEGER NOT NULL,
+        previous_mastery INTEGER NOT NULL,
+        new_mastery INTEGER NOT NULL,
+        FOREIGN KEY (routine_id) REFERENCES $tableRoutines (id)
+      )
+    ''');
+
     // 创建索引
     await db.execute('''
       CREATE INDEX idx_dance_elements_last_practiced ON $tableDanceElements (last_practiced_at)
@@ -82,6 +116,15 @@ class DatabaseHelper {
     ''');
     await db.execute('''
       CREATE INDEX idx_review_records_element_id ON $tableReviewRecords (element_id)
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_routines_last_practiced ON $tableRoutines (last_practiced_at)
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_routines_mastery ON $tableRoutines (mastery_level)
+    ''');
+    await db.execute('''
+      CREATE INDEX idx_routine_records_routine_id ON $tableRoutineRecords (routine_id)
     ''');
   }
 
@@ -192,6 +235,54 @@ class DatabaseHelper {
         ''');
         await txn.execute('''
           CREATE INDEX idx_review_records_element_id ON review_records (element_id)
+        ''');
+      });
+    }
+
+    if (oldVersion < 4) {
+      // v3 → v4: 添加 routines 和 routine_records 表
+      await db.transaction((txn) async {
+        // 创建舞段表
+        await txn.execute('''
+          CREATE TABLE $tableRoutines (
+            id TEXT PRIMARY KEY,
+            name TEXT NOT NULL,
+            category TEXT NOT NULL,
+            video_source_type TEXT NOT NULL,
+            video_uri TEXT NOT NULL,
+            trim_start INTEGER DEFAULT 0,
+            trim_end INTEGER DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'new',
+            mastery_level INTEGER DEFAULT 0,
+            last_practiced_at INTEGER NOT NULL,
+            created_at INTEGER NOT NULL,
+            updated_at INTEGER,
+            notes TEXT
+          )
+        ''');
+
+        // 创建舞段训练记录表
+        await txn.execute('''
+          CREATE TABLE $tableRoutineRecords (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            routine_id TEXT NOT NULL,
+            feedback TEXT NOT NULL,
+            reviewed_at INTEGER NOT NULL,
+            previous_mastery INTEGER NOT NULL,
+            new_mastery INTEGER NOT NULL,
+            FOREIGN KEY (routine_id) REFERENCES $tableRoutines (id)
+          )
+        ''');
+
+        // 创建索引
+        await txn.execute('''
+          CREATE INDEX idx_routines_last_practiced ON $tableRoutines (last_practiced_at)
+        ''');
+        await txn.execute('''
+          CREATE INDEX idx_routines_mastery ON $tableRoutines (mastery_level)
+        ''');
+        await txn.execute('''
+          CREATE INDEX idx_routine_records_routine_id ON $tableRoutineRecords (routine_id)
         ''');
       });
     }
